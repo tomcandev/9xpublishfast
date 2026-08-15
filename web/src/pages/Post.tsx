@@ -23,7 +23,6 @@ export function Post() {
   const [urls, setUrls] = useState<Partial<Record<Platform, string>>>({})
   const [saveStatus, setSaveStatus] = useState<Partial<Record<Platform, 'idle' | 'saving' | 'saved'>>>({})
   const [busy, setBusy] = useState(false)
-  const [activeSlide, setActiveSlide] = useState(0)
   const [downloading, setDownloading] = useState(false)
   const debounceTimers = useRef<Partial<Record<Platform, NodeJS.Timeout>>>({})
 
@@ -194,9 +193,6 @@ export function Post() {
   const videosTotalSize = videos.reduce((sum, v) => sum + v.size, 0)
   const imagesTotalSize = images.reduce((sum, img) => sum + img.size, 0)
 
-  // Ensure activeSlide stays within bounds if content changes
-  const currentSlideIndex = Math.min(activeSlide, Math.max(0, images.length - 1))
-
   return (
     <div className="page stack">
       <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => navigate('/')}>
@@ -280,31 +276,19 @@ export function Post() {
                   )
                 )}
                 {images.length > 0 && (
-                  <>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-step-action"
-                      onClick={() => void handleDownloadAllSeparate(images)}
-                      disabled={downloading}
-                    >
-                      <span className="btn-step-title">
-                        {downloading ? '⏳ Downloading…' : '⬇ Download All Images'}
-                      </span>
-                      <span className="btn-step-sub">
-                        {images.length === 1 ? '1 image' : `${images.length} separate images`} • {formatBytes(imagesTotalSize)}
-                      </span>
-                    </button>
-                    {images.length > 1 && (
-                      <a
-                        className="btn btn-ghost btn-sm"
-                        style={{ alignSelf: 'center', fontSize: '0.8rem', color: 'var(--text-soft)' }}
-                        href={assetDownloadUrl(images[currentSlideIndex]!.id)}
-                        download
-                      >
-                        ⬇ Download Slide {currentSlideIndex + 1} only
-                      </a>
-                    )}
-                  </>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-step-action"
+                    onClick={() => void handleDownloadAllSeparate(images)}
+                    disabled={downloading}
+                  >
+                    <span className="btn-step-title">
+                      {downloading ? '⏳ Downloading…' : '⬇ Download All Images'}
+                    </span>
+                    <span className="btn-step-sub">
+                      {images.length === 1 ? '1 image' : `${images.length} separate images`} • {formatBytes(imagesTotalSize)}
+                    </span>
+                  </button>
                 )}
               </div>
             </div>
@@ -315,56 +299,20 @@ export function Post() {
               ))}
 
               {images.length > 0 && (
-                <div className="carousel-viewer">
-                  {/* Main Preview with Left/Right Navigation */}
-                  <div className="carousel-main">
-                    <img
-                      className="carousel-main-img"
-                      src={assetUrl(images[currentSlideIndex]!.id)}
-                      alt={images[currentSlideIndex]!.originalName}
-                    />
-                    <span className="carousel-slide-badge">
-                      Slide {currentSlideIndex + 1} / {images.length}
-                    </span>
-                    {images.length > 1 && (
-                      <>
-                        <button
-                          type="button"
-                          className="carousel-arrow carousel-arrow-prev"
-                          onClick={() => setActiveSlide((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
-                          aria-label="Previous slide"
-                        >
-                          ‹
-                        </button>
-                        <button
-                          type="button"
-                          className="carousel-arrow carousel-arrow-next"
-                          onClick={() => setActiveSlide((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
-                          aria-label="Next slide"
-                        >
-                          ›
-                        </button>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Horizontal scroll strip with numbered sequence badges 1, 2, 3, 4 */}
-                  <div className="carousel-strip" role="tablist" aria-label="Carousel slides">
-                    {images.map((img, idx) => (
-                      <button
-                        key={img.id}
-                        type="button"
-                        className={`carousel-thumb-wrap ${currentSlideIndex === idx ? 'active' : ''}`}
-                        onClick={() => setActiveSlide(idx)}
-                        role="tab"
-                        aria-selected={currentSlideIndex === idx}
-                        aria-label={`Select slide ${idx + 1}`}
-                      >
-                        <img className="carousel-thumb-img" src={assetUrl(img.id)} alt={img.originalName} loading="lazy" />
-                        <span className="carousel-thumb-badge">{idx + 1}</span>
-                      </button>
-                    ))}
-                  </div>
+                <div className="carousel-scroll-gallery" aria-label="Carousel image sequence">
+                  {images.map((img, idx) => (
+                    <a
+                      key={img.id}
+                      href={assetUrl(img.id)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="carousel-scroll-item"
+                      title={`Slide ${idx + 1}: ${img.originalName} (tap to view full)`}
+                    >
+                      <img className="carousel-scroll-img" src={assetUrl(img.id)} alt={img.originalName} loading="lazy" />
+                      <span className="carousel-scroll-badge">{idx + 1}</span>
+                    </a>
+                  ))}
                 </div>
               )}
             </div>
