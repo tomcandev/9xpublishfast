@@ -993,6 +993,64 @@ input:checked + .slider:before {
   flex-shrink: 0;
 }
 
+/* ---------- reminder time selector cards ---------- */
+.reminder-time-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.reminder-time-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+  text-align: center;
+}
+
+.reminder-time-card:hover {
+  border-color: var(--text-faint);
+}
+
+.reminder-time-card.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.reminder-time-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.reminder-time-title {
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+.reminder-time-val {
+  font-size: 1.02rem;
+  font-weight: 750;
+}
+
+.reminder-time-check {
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-top: 1px;
+}
+
 @media (max-width: 680px) {
   .guide-steps {
     grid-template-columns: 1fr;
@@ -1013,4 +1071,7 @@ input:checked + .slider:before {
   .card { padding: 17px; }
   h1 { font-size: 1.4rem; }
   .stat-value { font-size: 1.45rem; }
+  .reminder-time-grid { gap: 6px; }
+  .reminder-time-card { padding: 8px 4px; }
+  .reminder-time-val { font-size: 0.95rem; }
 }

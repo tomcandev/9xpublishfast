@@ -75,7 +75,7 @@ const statements = [
   `CREATE TABLE IF NOT EXISTS reminder_settings (
     user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     enabled INTEGER NOT NULL DEFAULT 1,
-    reminder_times TEXT NOT NULL DEFAULT '09:00,12:30,20:00',
+    reminder_times TEXT NOT NULL DEFAULT '18:00',
     timezone TEXT NOT NULL DEFAULT 'Asia/Ho_Chi_Minh',
     last_notified_date TEXT,
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))

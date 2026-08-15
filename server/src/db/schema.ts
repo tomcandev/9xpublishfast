@@ -118,8 +118,8 @@ export const reminderSettings = sqliteTable(
       .primaryKey()
       .references(() => users.id, { onDelete: 'cascade' }),
     enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
-    /** Comma-separated times: e.g. "09:00,12:30,20:00" */
-    reminderTimes: text('reminder_times').notNull().default('09:00,12:30,20:00'),
+    /** Comma-separated times: e.g. "18:00" */
+    reminderTimes: text('reminder_times').notNull().default('18:00'),
     timezone: text('timezone').notNull().default('Asia/Ho_Chi_Minh'),
     lastNotifiedDate: text('last_notified_date'),
     updatedAt: text('updated_at').notNull().default(now),

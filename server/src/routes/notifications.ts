@@ -48,7 +48,7 @@ export async function notificationRoutes(app: FastifyInstance) {
       const defaultSetting = {
         userId: user.id,
         enabled: true,
-        reminderTimes: '09:00,12:30,20:00',
+        reminderTimes: '18:00',
         timezone: 'Asia/Ho_Chi_Minh',
         lastNotifiedDate: null,
       }

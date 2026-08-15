@@ -3,21 +3,27 @@ import { Alert, Spinner } from './ui'
 import { api, type ReminderSettingsData } from '../lib/api'
 import { isPushSupported, subscribeToPush, unsubscribeFromPush } from '../lib/pushClient'
 
-const PRESET_TIMES = [
-  { label: '09:00 (Morning)', value: '09:00' },
-  { label: '12:30 (Afternoon)', value: '12:30' },
-  { label: '19:30 (Evening)', value: '19:30' },
-  { label: '21:00 (Night)', value: '21:00' },
+interface PresetSlot {
+  id: string
+  title: string
+  time: string
+  icon: string
+}
+
+const PRESET_SLOTS: PresetSlot[] = [
+  { id: 'morning', title: 'Morning', time: '07:00', icon: '🌅' },
+  { id: 'noon', title: 'Noon', time: '11:00', icon: '☀️' },
+  { id: 'evening', title: 'Evening', time: '18:00', icon: '🌙' },
 ]
 
 export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(true)
   const [enabled, setEnabled] = useState(true)
-  const [times, setTimes] = useState<string[]>(['09:00', '12:30', '19:30'])
+  const [times, setTimes] = useState<string[]>(['18:00'])
   const [timezone, setTimezone] = useState('Asia/Ho_Chi_Minh')
   const [hasSubscription, setHasSubscription] = useState(false)
   const [subscriptionCount, setSubscriptionCount] = useState(0)
-  const [newTime, setNewTime] = useState('')
+  const [customTime, setCustomTime] = useState('')
   const [busy, setBusy] = useState(false)
   const [testing, setTesting] = useState(false)
   const [subscribing, setSubscribing] = useState(false)
@@ -34,7 +40,7 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
       try {
         const data = await api.notificationSettings()
         setEnabled(data.enabled)
-        setTimes(data.reminderTimes)
+        setTimes(data.reminderTimes.length > 0 ? data.reminderTimes : ['18:00'])
         setTimezone(data.timezone || 'Asia/Ho_Chi_Minh')
         setHasSubscription(data.hasSubscription)
         setSubscriptionCount(data.subscriptionCount)
@@ -47,29 +53,47 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
     void loadSettings()
   }, [])
 
-  function addTime(timeToAdd: string) {
-    const trimmed = timeToAdd.trim()
+  function togglePreset(timeVal: string) {
+    setError(null)
+    if (times.includes(timeVal)) {
+      if (times.length <= 1) {
+        setError('Please keep at least one reminder time.')
+        return
+      }
+      setTimes(times.filter((t) => t !== timeVal))
+    } else {
+      setTimes([...times, timeVal].sort())
+    }
+  }
+
+  function addCustomTime() {
+    const trimmed = customTime.trim()
     if (!trimmed) return
     if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(trimmed)) {
-      setError('Invalid time format (e.g. 09:30, 20:00)')
+      setError('Invalid time format (e.g. 08:30, 20:00)')
       return
     }
-    if (!times.includes(trimmed)) {
-      const updated = [...times, trimmed].sort()
-      setTimes(updated)
+    if (times.includes(trimmed)) {
+      setError('This time is already selected.')
+      return
     }
-    setNewTime('')
+    setTimes([...times, trimmed].sort())
+    setCustomTime('')
     setError(null)
   }
 
   function removeTime(timeToRemove: string) {
     if (times.length <= 1) {
-      setError('Must keep at least one reminder time')
+      setError('Please keep at least one reminder time.')
       return
     }
     setTimes(times.filter((t) => t !== timeToRemove))
     setError(null)
   }
+
+  const customTimes = times.filter(
+    (t) => !PRESET_SLOTS.some((slot) => slot.time === t),
+  )
 
   async function handleToggleDevicePush() {
     setError(null)
@@ -188,95 +212,100 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
 
             {/* ---- Time Selection ---- */}
             {enabled && (
-              <div className="stack" style={{ gap: 10 }}>
+              <div className="stack" style={{ gap: 12 }}>
                 <label className="label" style={{ fontWeight: 650 }}>
-                  Reminder Times Daily ({timezone}):
+                  Daily Reminder Slots ({timezone}):
                 </label>
 
-                {/* Preset Chips */}
-                <div className="row-tight" style={{ flexWrap: 'wrap', gap: 6 }}>
-                  {PRESET_TIMES.map((preset) => {
-                    const isSelected = times.includes(preset.value)
+                {/* 3 Primary Slots */}
+                <div className="reminder-time-grid">
+                  {PRESET_SLOTS.map((slot) => {
+                    const isSelected = times.includes(slot.time)
                     return (
-                      <button
-                        key={preset.value}
-                        type="button"
-                        className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-ghost'}`}
-                        style={{ fontSize: '0.82rem', padding: '5px 10px' }}
-                        onClick={() => {
-                          if (isSelected) removeTime(preset.value)
-                          else addTime(preset.value)
+                      <div
+                        key={slot.id}
+                        className={`reminder-time-card ${isSelected ? 'active' : ''}`}
+                        onClick={() => togglePreset(slot.time)}
+                        role="checkbox"
+                        aria-checked={isSelected}
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === ' ' || e.key === 'Enter') {
+                            e.preventDefault()
+                            togglePreset(slot.time)
+                          }
                         }}
                       >
-                        {isSelected ? `✓ ${preset.label}` : `+ ${preset.label}`}
-                      </button>
+                        <span className="reminder-time-icon">{slot.icon}</span>
+                        <span className="reminder-time-title">{slot.title}</span>
+                        <span className="reminder-time-val">{slot.time}</span>
+                        <span className="reminder-time-check">
+                          {isSelected ? '✓ Active' : '+ Enable'}
+                        </span>
+                      </div>
                     )
                   })}
                 </div>
 
-                {/* Selected Times List */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 8,
-                    padding: '10px',
-                    background: 'var(--bg)',
-                    borderRadius: 'var(--radius-sm)',
-                    minHeight: 44,
-                    alignItems: 'center',
-                  }}
-                >
-                  {times.map((t) => (
-                    <span
-                      key={t}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        background: 'var(--accent-soft)',
-                        color: 'var(--accent)',
-                        fontWeight: 700,
-                        fontSize: '0.85rem',
-                        padding: '4px 9px',
-                        borderRadius: 4,
-                      }}
-                    >
-                      <span>⏰ {t}</span>
-                      <button
-                        type="button"
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--text-soft)',
-                          cursor: 'pointer',
-                          padding: 0,
-                          fontSize: '0.9rem',
-                          lineHeight: 1,
-                        }}
-                        onClick={() => removeTime(t)}
-                        title="Remove time"
-                      >
-                        ✕
-                      </button>
+                {/* Custom Times Strip (if any) */}
+                {customTimes.length > 0 && (
+                  <div className="stack" style={{ gap: 6 }}>
+                    <span className="hint" style={{ fontSize: '0.78rem', fontWeight: 600 }}>
+                      Custom Times:
                     </span>
-                  ))}
-                </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {customTimes.map((t) => (
+                        <span
+                          key={t}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            background: 'var(--accent-soft)',
+                            color: 'var(--accent)',
+                            fontWeight: 700,
+                            fontSize: '0.85rem',
+                            padding: '4px 9px',
+                            borderRadius: 4,
+                          }}
+                        >
+                          <span>⏰ {t}</span>
+                          <button
+                            type="button"
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--text-soft)',
+                              cursor: 'pointer',
+                              padding: 0,
+                              fontSize: '0.9rem',
+                              lineHeight: 1,
+                            }}
+                            onClick={() => removeTime(t)}
+                            title="Remove time"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                {/* Add Custom Time */}
-                <div className="row" style={{ gap: 8 }}>
+                {/* Add Custom Time Input */}
+                <div className="row" style={{ gap: 8, alignItems: 'center' }}>
                   <input
                     className="input"
                     type="time"
-                    value={newTime}
-                    onChange={(e) => setNewTime(e.target.value)}
-                    style={{ maxWidth: 140 }}
+                    value={customTime}
+                    onChange={(e) => setCustomTime(e.target.value)}
+                    style={{ maxWidth: 130 }}
                   />
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm"
-                    onClick={() => addTime(newTime)}
-                    disabled={!newTime}
+                    onClick={addCustomTime}
+                    disabled={!customTime}
                   >
                     + Add Custom Time
                   </button>
