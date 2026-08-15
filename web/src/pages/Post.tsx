@@ -182,20 +182,32 @@ export function Post() {
       {error && <Snackbar message={error} kind="error" onClose={() => setError(null)} />}
 
       {/* ---- 3-step quick guide ---- */}
-      <div className="stepper-guide" aria-label="Publishing workflow steps">
-        <div className={`step-guide-item ${savedCount > 0 ? 'done' : 'current'}`}>
-          <span className="step-num">{savedCount > 0 ? '✓' : '1'}</span>
-          <span className="step-text">Download Media</span>
-        </div>
-        <span className="step-arrow">→</span>
-        <div className={`step-guide-item ${savedCount > 0 ? 'done' : 'current'}`}>
-          <span className="step-num">{savedCount > 0 ? '✓' : '2'}</span>
-          <span className="step-text">Copy Caption</span>
-        </div>
-        <span className="step-arrow">→</span>
-        <div className={`step-guide-item ${savedCount > 0 ? 'done' : ''}`}>
-          <span className="step-num">3</span>
-          <span className="step-text">Paste Link</span>
+      <div className="guide-card" aria-label="Publishing workflow guide">
+        <div className="guide-title">How to publish in 3 simple steps:</div>
+        <div className="guide-steps">
+          <div className="guide-step">
+            <div className="guide-step-badge">1</div>
+            <div className="guide-step-body">
+              <strong>Download Media</strong>
+              <span>Save video or carousel images to your device</span>
+            </div>
+          </div>
+
+          <div className="guide-step">
+            <div className="guide-step-badge">2</div>
+            <div className="guide-step-body">
+              <strong>Copy Caption & Post</strong>
+              <span>Copy caption, post in-app with your audio, stickers, text</span>
+            </div>
+          </div>
+
+          <div className="guide-step">
+            <div className="guide-step-badge">3</div>
+            <div className="guide-step-body">
+              <strong>Paste Link & Finish</strong>
+              <span>Copy published link from the app and paste here to complete</span>
+            </div>
+          </div>
         </div>
       </div>
 

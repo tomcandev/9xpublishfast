@@ -642,61 +642,68 @@ tbody tr:last-child td { border-bottom: none; }
 }
 
 /* ---------- 3-step guide & step cards ---------- */
-.stepper-guide {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+.guide-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-}
-
-.step-guide-item {
+  border-radius: var(--radius);
+  padding: 14px 16px;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.84rem;
-  font-weight: 580;
-  color: var(--text-soft);
+  flex-direction: column;
+  gap: 10px;
 }
 
-.step-guide-item .step-num {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--bg);
-  border: 1px solid var(--border);
+.guide-title {
+  font-size: 0.78rem;
+  font-weight: 680;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--text-faint);
+}
+
+.guide-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.guide-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.guide-step-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
   display: grid;
   place-items: center;
-  font-size: 0.76rem;
-  font-weight: 700;
   flex-shrink: 0;
+  margin-top: 1px;
 }
 
-.step-guide-item.current {
+.guide-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.guide-step-body strong {
+  font-size: 0.86rem;
+  font-weight: 600;
   color: var(--text);
-}
-.step-guide-item.current .step-num {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
+  line-height: 1.3;
 }
 
-.step-guide-item.done {
-  color: var(--accent);
-}
-.step-guide-item.done .step-num {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-.step-arrow {
-  color: var(--text-faint);
-  font-size: 0.85rem;
+.guide-step-body span {
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  line-height: 1.35;
 }
 
 .step-header {
@@ -718,17 +725,10 @@ tbody tr:last-child td { border-bottom: none; }
   text-transform: uppercase;
 }
 
-@media (max-width: 540px) {
-  .stepper-guide {
-    padding: 8px 10px;
-    gap: 4px;
-  }
-  .step-guide-item {
-    font-size: 0.74rem;
-    gap: 5px;
-  }
-  .step-arrow {
-    font-size: 0.7rem;
+@media (max-width: 680px) {
+  .guide-steps {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 }
 
