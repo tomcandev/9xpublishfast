@@ -181,9 +181,32 @@ export function Post() {
 
       {error && <Snackbar message={error} kind="error" onClose={() => setError(null)} />}
 
-      {/* ---- media ---- */}
+      {/* ---- 3-step quick guide ---- */}
+      <div className="stepper-guide" aria-label="Publishing workflow steps">
+        <div className={`step-guide-item ${savedCount > 0 ? 'done' : 'current'}`}>
+          <span className="step-num">{savedCount > 0 ? '✓' : '1'}</span>
+          <span className="step-text">Download Media</span>
+        </div>
+        <span className="step-arrow">→</span>
+        <div className={`step-guide-item ${savedCount > 0 ? 'done' : 'current'}`}>
+          <span className="step-num">{savedCount > 0 ? '✓' : '2'}</span>
+          <span className="step-text">Copy Caption</span>
+        </div>
+        <span className="step-arrow">→</span>
+        <div className={`step-guide-item ${savedCount > 0 ? 'done' : ''}`}>
+          <span className="step-num">3</span>
+          <span className="step-text">Paste Link</span>
+        </div>
+      </div>
+
+      {/* ---- Step 1: Media ---- */}
       {content.assets.length > 0 && (
         <div className="card stack">
+          <div className="step-header">
+            <span className="step-badge">Step 1</span>
+            <h2>Download Media</h2>
+          </div>
+
           {videos.map((v) => (
             <video key={v.id} className="media" src={assetUrl(v.id)} controls preload="metadata" playsInline />
           ))}
@@ -213,11 +236,12 @@ export function Post() {
         </div>
       )}
 
-      {/* ---- caption ---- */}
+      {/* ---- Step 2: Caption ---- */}
       {content.caption && (
         <div className="card stack">
-          <div className="row">
-            <h2>Caption</h2>
+          <div className="step-header">
+            <span className="step-badge">Step 2</span>
+            <h2>Copy Caption</h2>
             <div className="spacer" />
             <CopyButton text={content.caption} className="btn btn-sm" />
           </div>
@@ -225,10 +249,13 @@ export function Post() {
         </div>
       )}
 
-      {/* ---- links ---- */}
+      {/* ---- Step 3: Links ---- */}
       <div className="card stack">
         <div className="stack" style={{ gap: 3 }}>
-          <h2>Published links</h2>
+          <div className="step-header">
+            <span className="step-badge">Step 3</span>
+            <h2>Paste Published Links</h2>
+          </div>
           <p className="hint">Paste links from each platform. Changes are automatically saved.</p>
         </div>
 

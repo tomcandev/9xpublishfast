@@ -641,6 +641,97 @@ tbody tr:last-child td { border-bottom: none; }
   opacity: 1;
 }
 
+/* ---------- 3-step guide & step cards ---------- */
+.stepper-guide {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+
+.step-guide-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  font-weight: 580;
+  color: var(--text-soft);
+}
+
+.step-guide-item .step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-faint);
+  display: grid;
+  place-items: center;
+  font-size: 0.76rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.step-guide-item.current {
+  color: var(--text);
+}
+.step-guide-item.current .step-num {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.step-guide-item.done {
+  color: var(--accent);
+}
+.step-guide-item.done .step-num {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.step-arrow {
+  color: var(--text-faint);
+  font-size: 0.85rem;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 540px) {
+  .stepper-guide {
+    padding: 8px 10px;
+    gap: 4px;
+  }
+  .step-guide-item {
+    font-size: 0.74rem;
+    gap: 5px;
+  }
+  .step-arrow {
+    font-size: 0.7rem;
+  }
+}
+
 @media (max-width: 480px) {
   .page { padding: 18px 15px 56px; }
   .card { padding: 17px; }
