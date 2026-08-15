@@ -120,10 +120,50 @@ export function Post() {
     [doSaveLink],
   )
 
-  const handleDownloadAllSeparate = useCallback(
+  const handleShareOrDownload = useCallback(
     async (assetsList: Asset[]) => {
       if (!assetsList.length) return
       setDownloading(true)
+
+      const isSharingSupported =
+        typeof navigator !== 'undefined' &&
+        typeof navigator.share === 'function' &&
+        typeof navigator.canShare === 'function'
+
+      if (isSharingSupported) {
+        try {
+          const files = await Promise.all(
+            assetsList.map(async (a, idx) => {
+              const res = await fetch(assetDownloadUrl(a.id))
+              const blob = await res.blob()
+              const ext = a.type === 'video' ? 'mp4' : 'jpg'
+              const name = a.originalName || `${content?.code || 'media'}_${idx + 1}.${ext}`
+              return new File([blob], name, {
+                type: a.mime || blob.type || (a.type === 'video' ? 'video/mp4' : 'image/jpeg'),
+              })
+            }),
+          )
+
+          if (navigator.canShare({ files })) {
+            await navigator.share({
+              title: content?.title || content?.code || 'PublishFast Media',
+              text: content?.caption || undefined,
+              files,
+            })
+            setDownloading(false)
+            return
+          }
+        } catch (err) {
+          if (err instanceof Error && err.name === 'AbortError') {
+            // User dismissed native share sheet, do not fallback or error
+            setDownloading(false)
+            return
+          }
+          console.warn('Native share failed, falling back to direct download', err)
+        }
+      }
+
+      // Fallback: direct download separate files
       try {
         for (let i = 0; i < assetsList.length; i++) {
           const a = assetsList[i]!
@@ -141,7 +181,7 @@ export function Post() {
         setTimeout(() => setDownloading(false), 1200)
       }
     },
-    [content?.code],
+    [content?.caption, content?.code, content?.title],
   )
 
   async function complete() {
@@ -219,8 +259,8 @@ export function Post() {
           <div className="guide-step">
             <div className="guide-step-badge">1</div>
             <div className="guide-step-body">
-              <strong>Download Media</strong>
-              <span>Save video or carousel images to your device</span>
+              <strong>Share / Save Media</strong>
+              <span>Share directly to TikTok/IG apps or save to camera roll</span>
             </div>
           </div>
 
@@ -249,44 +289,33 @@ export function Post() {
             <div className="step-split-left">
               <div className="step-header">
                 <span className="step-badge">Step 1</span>
-                <h2>Download Media</h2>
+                <h2>Share / Save Media</h2>
               </div>
               <div className="stack" style={{ gap: 8 }}>
                 {videos.length > 0 && (
-                  videos.length === 1 ? (
-                    <a
-                      className="btn btn-primary btn-step-action"
-                      href={assetDownloadUrl(videos[0]!.id)}
-                      download
-                    >
-                      <span className="btn-step-title">⬇ Download Video</span>
-                      <span className="btn-step-sub">1 video • {formatBytes(videosTotalSize)}</span>
-                    </a>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-step-action"
-                      onClick={() => void handleDownloadAllSeparate(videos)}
-                      disabled={downloading}
-                    >
-                      <span className="btn-step-title">
-                        {downloading ? '⏳ Downloading…' : '⬇ Download All Videos'}
-                      </span>
-                      <span className="btn-step-sub">
-                        {videos.length} separate videos • {formatBytes(videosTotalSize)}
-                      </span>
-                    </button>
-                  )
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-step-action"
+                    onClick={() => void handleShareOrDownload(videos)}
+                    disabled={downloading}
+                  >
+                    <span className="btn-step-title">
+                      {downloading ? '⏳ Preparing…' : '📲 Share / Save Video'}
+                    </span>
+                    <span className="btn-step-sub">
+                      {videos.length === 1 ? '1 video' : `${videos.length} videos`} • {formatBytes(videosTotalSize)}
+                    </span>
+                  </button>
                 )}
                 {images.length > 0 && (
                   <button
                     type="button"
                     className="btn btn-primary btn-step-action"
-                    onClick={() => void handleDownloadAllSeparate(images)}
+                    onClick={() => void handleShareOrDownload(images)}
                     disabled={downloading}
                   >
                     <span className="btn-step-title">
-                      {downloading ? '⏳ Downloading…' : '⬇ Download All Images'}
+                      {downloading ? '⏳ Preparing…' : '📲 Share / Save Images'}
                     </span>
                     <span className="btn-step-sub">
                       {images.length === 1 ? '1 image' : `${images.length} separate images`} • {formatBytes(imagesTotalSize)}
