@@ -369,6 +369,21 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
                 </div>
               )}
 
+              {permission === 'denied' && (
+                <div
+                  style={{
+                    padding: '8px 10px',
+                    background: 'var(--danger-soft)',
+                    color: 'var(--danger)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.78rem',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  ⚠️ <strong>Notifications blocked:</strong> Tap the 🔒 / ⚙️ icon on Chrome's address bar ➔ <strong>Permissions</strong> ➔ Set Notifications to <strong>"Allow"</strong> or <strong>"Reset permissions"</strong>, then reload this page.
+                </div>
+              )}
+
               <p className="hint" style={{ fontSize: '0.75rem', margin: 0, opacity: 0.85 }}>
                 💡 <strong>Tip for iPhone users:</strong> Open Safari ➔ Tap the Share button ➔ Select{' '}
                 <strong>"Add to Home Screen"</strong> to receive lock screen push notifications just like a native app.
