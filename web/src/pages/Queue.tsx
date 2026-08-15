@@ -1,23 +1,35 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Alert, Empty, Spinner, StatusBadge } from '../components/ui'
-import { ApiError, api, type Content, type Stats } from '../lib/api'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Alert, Empty, Spinner, StatusBadge, formatDate } from '../components/ui'
+import { ApiError, PLATFORM_LABELS, api, type Content, type Stats } from '../lib/api'
 import { useAuth } from '../lib/auth'
 
 export function Queue() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const currentTab = searchParams.get('tab') === 'history' ? 'history' : 'tasks'
+
   const [stats, setStats] = useState<Stats | null>(null)
   const [mine, setMine] = useState<Content[]>([])
+  const [available, setAvailable] = useState<Content[]>([])
+  const [historyItems, setHistoryItems] = useState<Content[]>([])
   const [loading, setLoading] = useState(true)
-  const [claiming, setClaiming] = useState(false)
+  const [claimingId, setClaimingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
-      const [s, list] = await Promise.all([api.stats(), api.contents('CLAIMED')])
+      const [s, claimedList, readyList, hist] = await Promise.all([
+        api.stats(),
+        api.contents('CLAIMED'),
+        api.contents('READY'),
+        api.history(),
+      ])
       setStats(s)
-      setMine(list.contents.filter((c) => c.claimedBy === user?.id))
+      setMine(claimedList.contents.filter((c) => c.claimedBy === user?.id))
+      setAvailable(readyList.contents.slice(0, 5))
+      setHistoryItems(hist.contents)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data')
     } finally {
@@ -29,87 +41,176 @@ export function Queue() {
     void load()
   }, [load])
 
-  async function claimNext() {
-    setClaiming(true)
+  async function handleClaim(id: string) {
+    setClaimingId(id)
     setError(null)
     try {
-      const { content } = await api.claimNext()
+      const { content } = await api.claim(id)
       navigate(`/post/${content.id}`)
     } catch (err) {
-      setError(
-        err instanceof ApiError && err.reason === 'empty_queue'
-          ? 'No posts ready right now. Check back later.'
-          : err instanceof Error
-            ? err.message
-            : 'Failed to claim post',
-      )
+      setError(err instanceof Error ? err.message : 'Failed to claim post')
       void load()
     } finally {
-      setClaiming(false)
+      setClaimingId(null)
     }
+  }
+
+  function selectTab(tab: 'tasks' | 'history') {
+    setSearchParams(tab === 'history' ? { tab: 'history' } : {})
   }
 
   if (loading) return <Spinner />
 
   return (
-    <div className="page stack">
-      <div className="stack" style={{ gap: 4 }}>
-        <h1>Welcome, {user?.displayName} 👋</h1>
-        <p className="hint">
-          {stats?.available
-            ? `${stats.available} post${stats.available === 1 ? '' : 's'} waiting in queue.`
-            : 'No new posts waiting in queue.'}
-        </p>
-      </div>
-
+    <div className="page stack" style={{ paddingBottom: 88 }}>
       {error && <Alert>{error}</Alert>}
 
-      <div className="stats">
-        <div className="stat">
-          <div className="stat-value">{stats?.available ?? 0}</div>
-          <div className="stat-label">Waiting</div>
-        </div>
-        <div className="stat">
-          <div className="stat-value">{stats?.claimed ?? 0}</div>
-          <div className="stat-label">In Progress</div>
-        </div>
-        <div className="stat">
-          <div className="stat-value">{stats?.published ?? 0}</div>
-          <div className="stat-label">Published</div>
-        </div>
-      </div>
-
-      <button
-        className="btn btn-primary btn-lg btn-block"
-        onClick={claimNext}
-        disabled={claiming || !stats?.available}
-      >
-        {claiming ? 'Claiming post…' : 'Claim next post'}
-      </button>
-
-      <div className="stack" style={{ gap: 10 }}>
-        <h2>Your active posts</h2>
-        {mine.length === 0 ? (
-          <Empty>No active posts. Tap “Claim next post” to begin.</Empty>
-        ) : (
-          <div className="list">
-            {mine.map((c) => (
-              <Link key={c.id} to={`/post/${c.id}`} className="list-item">
-                <div className="stack min0" style={{ gap: 3, flex: 1 }}>
-                  <div className="row-tight">
-                    <span className="code">{c.code}</span>
-                    <StatusBadge status={c.status} />
+      {currentTab === 'tasks' ? (
+        <>
+          {/* Active / In-progress posts held by KOL */}
+          {mine.length > 0 && (
+            <div className="list">
+              {mine.map((c) => (
+                <Link key={c.id} to={`/post/${c.id}`} className="list-item">
+                  <div className="stack min0" style={{ gap: 3, flex: 1 }}>
+                    <div className="row-tight">
+                      <span className="code">{c.code}</span>
+                      <StatusBadge status={c.status} />
+                    </div>
+                    <div className="truncate" style={{ color: 'var(--text-soft)', fontSize: '0.9rem' }}>
+                      {c.title || c.caption || 'Untitled'}
+                    </div>
                   </div>
-                  <div className="truncate" style={{ color: 'var(--text-soft)', fontSize: '0.9rem' }}>
-                    {c.title || c.caption || 'Untitled'}
+                  <span style={{ color: 'var(--text-faint)' }}>›</span>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {/* Available posts up to 5 */}
+          {available.length > 0 && (
+            <div className="stack" style={{ gap: 10 }}>
+              <div className="list">
+                {available.map((c) => (
+                  <div key={c.id} className="list-item">
+                    <div className="stack min0" style={{ gap: 3, flex: 1 }}>
+                      <div className="row-tight">
+                        <span className="code">{c.code}</span>
+                        <span className="badge" style={{ textTransform: 'capitalize' }}>
+                          {c.contentType}
+                        </span>
+                      </div>
+                      <div className="truncate" style={{ color: 'var(--text-soft)', fontSize: '0.9rem' }}>
+                        {c.title || c.caption || 'Untitled'}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      disabled={claimingId === c.id}
+                      onClick={() => void handleClaim(c.id)}
+                    >
+                      {claimingId === c.id ? 'Claiming…' : 'Claim'}
+                    </button>
                   </div>
+                ))}
+              </div>
+
+              {(stats?.available ?? 0) > 5 && (
+                <div className="center-note" style={{ padding: '4px 0', fontSize: '0.82rem' }}>
+                  +{stats!.available - 5} more available posts waiting
                 </div>
-                <span style={{ color: 'var(--text-faint)' }}>›</span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+              )}
+            </div>
+          )}
+
+          {mine.length === 0 && available.length === 0 && (
+            <Empty>No posts available right now. Check back soon!</Empty>
+          )}
+        </>
+      ) : (
+        <>
+          {historyItems.length === 0 ? (
+            <Empty>You haven’t published any posts yet.</Empty>
+          ) : (
+            <div className="list">
+              {historyItems.map((c) => (
+                <Link key={c.id} to={`/post/${c.id}`} className="list-item">
+                  <div className="stack min0" style={{ gap: 4, flex: 1 }}>
+                    <div className="row-tight">
+                      <span className="code">{c.code}</span>
+                      <span className="hint">{formatDate(c.claimedAt)}</span>
+                    </div>
+                    <div className="truncate" style={{ color: 'var(--text)', fontSize: '0.92rem', fontWeight: 550 }}>
+                      {c.title || c.caption || 'Untitled'}
+                    </div>
+                    {c.publications.some((p) => p.publishedUrl) && (
+                      <div className="row" style={{ gap: 6, marginTop: 2 }}>
+                        {c.publications
+                          .filter((p) => p.publishedUrl)
+                          .map((p) => (
+                            <a
+                              key={p.id}
+                              className="badge"
+                              href={p.publishedUrl!}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ textDecoration: 'none' }}
+                            >
+                              {PLATFORM_LABELS[p.platform]} ↗
+                            </a>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                  <span style={{ color: 'var(--text-faint)' }}>›</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Bottom Navigation */}
+      <nav className="bottom-nav" aria-label="Main Navigation">
+        <div className="bottom-nav-inner">
+          <button
+            type="button"
+            className={`bottom-nav-item ${currentTab === 'tasks' ? 'active' : ''}`}
+            onClick={() => selectTab('tasks')}
+          >
+            <TasksIcon />
+            <span>Tasks</span>
+          </button>
+          <button
+            type="button"
+            className={`bottom-nav-item ${currentTab === 'history' ? 'active' : ''}`}
+            onClick={() => selectTab('history')}
+          >
+            <CheckCircleIcon />
+            <span>Published</span>
+          </button>
+        </div>
+      </nav>
     </div>
+  )
+}
+
+function TasksIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </svg>
+  )
+}
+
+function CheckCircleIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
   )
 }

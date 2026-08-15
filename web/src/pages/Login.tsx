@@ -24,20 +24,21 @@ export function Login() {
   return (
     <div className="auth-wrap">
       <div className="auth-card stack">
-        <div className="row-tight" style={{ justifyContent: 'center' }}>
-          <span className="brand-mark" aria-hidden="true">
-            <BoltIcon />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+          <span
+            className="brand-mark"
+            aria-hidden="true"
+            style={{ width: 56, height: 56, borderRadius: 16 }}
+          >
+            <BoltIcon size={30} />
           </span>
-          <span style={{ fontWeight: 680, fontSize: '1.15rem', letterSpacing: '-0.02em' }}>
+          <span style={{ fontWeight: 700, fontSize: '1.45rem', letterSpacing: '-0.025em' }}>
             PublishFast
           </span>
         </div>
 
         <form className="card card-pad-lg stack" onSubmit={onSubmit}>
-          <div className="stack" style={{ gap: 4 }}>
-            <h1 style={{ fontSize: '1.25rem' }}>Sign In</h1>
-            <p className="hint">Use your username or email.</p>
-          </div>
+          <h1 style={{ fontSize: '1.25rem' }}>Sign In</h1>
 
           {error && <Alert>{error}</Alert>}
 
@@ -54,7 +55,6 @@ export function Login() {
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              placeholder="yoga"
               required
               autoFocus
             />
@@ -84,9 +84,9 @@ export function Login() {
   )
 }
 
-export function BoltIcon() {
+export function BoltIcon({ size = 15 }: { size?: number }) {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
         d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12L13 2Z"
         fill="currentColor"
