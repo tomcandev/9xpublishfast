@@ -23,6 +23,8 @@ export function Post() {
   const [urls, setUrls] = useState<Partial<Record<Platform, string>>>({})
   const [saveStatus, setSaveStatus] = useState<Partial<Record<Platform, 'idle' | 'saving' | 'saved'>>>({})
   const [busy, setBusy] = useState(false)
+  const [activeSlide, setActiveSlide] = useState(0)
+  const [downloading, setDownloading] = useState(false)
   const debounceTimers = useRef<Partial<Record<Platform, NodeJS.Timeout>>>({})
 
   const load = useCallback(async () => {
@@ -119,6 +121,30 @@ export function Post() {
     [doSaveLink],
   )
 
+  const handleDownloadAllSeparate = useCallback(
+    async (assetsList: Asset[]) => {
+      if (!assetsList.length) return
+      setDownloading(true)
+      try {
+        for (let i = 0; i < assetsList.length; i++) {
+          const a = assetsList[i]!
+          const link = document.createElement('a')
+          link.href = assetDownloadUrl(a.id)
+          link.download = a.originalName || `${content?.code || 'media'}_${i + 1}.${a.type === 'video' ? 'mp4' : 'jpg'}`
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          if (i < assetsList.length - 1) {
+            await new Promise((r) => setTimeout(r, 450))
+          }
+        }
+      } finally {
+        setTimeout(() => setDownloading(false), 1200)
+      }
+    },
+    [content?.code],
+  )
+
   async function complete() {
     if (!content) return
     setBusy(true)
@@ -160,30 +186,6 @@ export function Post() {
         <Empty>Post not found. It may have been claimed or removed.</Empty>
       </div>
     )
-  }
-
-  const [activeSlide, setActiveSlide] = useState(0)
-  const [downloading, setDownloading] = useState(false)
-
-  async function handleDownloadAllSeparate(assetsList: Asset[]) {
-    if (!assetsList.length) return
-    setDownloading(true)
-    try {
-      for (let i = 0; i < assetsList.length; i++) {
-        const a = assetsList[i]!
-        const link = document.createElement('a')
-        link.href = assetDownloadUrl(a.id)
-        link.download = a.originalName || `${content?.code || 'media'}_${i + 1}.${a.type === 'video' ? 'mp4' : 'jpg'}`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        if (i < assetsList.length - 1) {
-          await new Promise((r) => setTimeout(r, 450))
-        }
-      }
-    } finally {
-      setTimeout(() => setDownloading(false), 1200)
-    }
   }
 
   const videos = content.assets.filter((a) => a.type === 'video')
