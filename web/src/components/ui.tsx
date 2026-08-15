@@ -141,3 +141,42 @@ export function ErrorDialog({
     </div>
   )
 }
+
+export function Snackbar({
+  message,
+  kind = 'error',
+  onClose,
+  duration = 4000,
+}: {
+  message: string
+  kind?: 'error' | 'ok' | 'warn'
+  onClose: () => void
+  duration?: number
+}) {
+  useEffect(() => {
+    if (!duration) return
+    const timer = setTimeout(() => {
+      onClose()
+    }, duration)
+    return () => clearTimeout(timer)
+  }, [duration, onClose])
+
+  return (
+    <div className="snackbar-wrap">
+      <div className={`snackbar snackbar-${kind}`} role="alert">
+        <span className="snackbar-icon" aria-hidden="true">
+          {kind === 'error' ? '!' : kind === 'ok' ? '✓' : 'ℹ'}
+        </span>
+        <span style={{ flex: 1 }}>{message}</span>
+        <button
+          type="button"
+          className="snackbar-close"
+          onClick={onClose}
+          aria-label="Dismiss notification"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  )
+}

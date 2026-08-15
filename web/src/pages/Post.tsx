@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Alert, CopyButton, ErrorDialog, Spinner, StatusBadge, formatBytes } from '../components/ui'
+import { Alert, CopyButton, Empty, Snackbar, Spinner, StatusBadge, formatBytes } from '../components/ui'
 import {
   PLATFORM_LABELS,
   api,
@@ -148,14 +148,15 @@ export function Post() {
   if (!content) {
     return (
       <div className="page stack">
-        <ErrorDialog
-          title="Post Not Found"
-          message={error ?? 'This post does not exist or you do not have permission to view it.'}
-          onClose={() => navigate('/')}
+        <Snackbar
+          message={error ?? 'Post not found or inaccessible'}
+          kind="error"
+          onClose={() => setError(null)}
         />
-        <button className="btn" onClick={() => navigate('/')}>
+        <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => navigate('/')}>
           ← Back
         </button>
+        <Empty>Post not found. It may have been claimed or removed.</Empty>
       </div>
     )
   }
@@ -178,7 +179,7 @@ export function Post() {
         {content.title && <h1>{content.title}</h1>}
       </div>
 
-      {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+      {error && <Snackbar message={error} kind="error" onClose={() => setError(null)} />}
 
       {/* ---- media ---- */}
       {content.assets.length > 0 && (
