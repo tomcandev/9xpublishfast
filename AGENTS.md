@@ -175,4 +175,4 @@ Content-Type: multipart/form-data (field: file)
 * Maintain route-level permission checks for all new endpoints
 * Follow vanilla CSS tokens defined in [`web/src/styles.css`](file:///Users/tom/Desktop/tomcandev/projects/publishfast/web/src/styles.css) without introducing heavy UI frameworks
 * Run `npm test` and `npm run build` after modifying server or web code to prevent regressions
-* Proactively remind the user to commit and push changes upon task completion
+* Automatically commit and push changes directly to GitHub after verifying tests and build pass, without waiting or asking for reminders
