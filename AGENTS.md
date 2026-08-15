@@ -44,6 +44,7 @@ PublishFast streamlines everything around that human action:
 ```
 publishfast/
 ├── docs/                     # Technical specifications and guides
+│   ├── ai-ingestion-guide.md # AI content generator pipeline guide & scripts
 │   ├── api.md                # Full HTTP API and ingestion schema
 │   ├── data-model.md         # Schema definitions and status state machine
 │   └── deployment.md         # Systemd, Cloudflare Tunnel, backup procedures

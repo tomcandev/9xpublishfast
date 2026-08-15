@@ -98,7 +98,7 @@ is exactly as protected as the item itself.
 
 ## Ingestion — for the AI pipeline
 
-Bearer token (or an admin session).
+Bearer token (or an admin session). For comprehensive workflows, Python/Node.js scripts, and carousel guides, see the dedicated [AI Ingestion Guide](file:///home/ubuntu/projects/publishfast/docs/ai-ingestion-guide.md).
 
 ### `POST /api/ingest/contents`
 
@@ -108,12 +108,14 @@ Bearer token (or an admin session).
   "title": "Repeat Sentence Tip",
   "caption": "Most PTE students make this mistake...",
   "contentType": "video",
-  "status": "READY"
+  "status": "READY",
+  "assignedUserId": "user-uuid-here"
 }
 ```
 
-`status` defaults to `DRAFT`; use `READY` to put it straight into the queue.
-`409` if `code` already exists.
+* `status`: defaults to `DRAFT`; use `READY` to put it straight into the queue.
+* `assignedUserId`: optional. When set, only that specific KOL can see and claim the post. When omitted or `null`, it goes to the open queue.
+* `409` if `code` already exists.
 
 ### `POST /api/ingest/contents/:id/assets`
 
