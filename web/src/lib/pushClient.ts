@@ -1,0 +1,114 @@
+import { api } from './api'
+
+/**
+ * Converts a base64 string to a Uint8Array for applicationServerKey.
+ */
+export function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i)
+  }
+  return outputArray
+}
+
+export function isPushSupported(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    'serviceWorker' in navigator &&
+    'PushManager' in window &&
+    'Notification' in window
+  )
+}
+
+export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (!('serviceWorker' in navigator)) return null
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    return reg
+  } catch (err) {
+    console.warn('Service worker registration failed:', err)
+    return null
+  }
+}
+
+export async function subscribeToPush(): Promise<{ ok: boolean; error?: string }> {
+  if (!isPushSupported()) {
+    return { ok: false, error: 'Trình duyệt của bạn không hỗ trợ Web Push Notifications.' }
+  }
+
+  try {
+    const permission = await Notification.requestPermission()
+    if (permission !== 'granted') {
+      return { ok: false, error: 'Bạn đã từ chối cấp quyền thông báo. Vui lòng bật lại trong cài đặt trình duyệt.' }
+    }
+
+    const reg = await registerServiceWorker()
+    if (!reg) {
+      return { ok: false, error: 'Không thể đăng ký Service Worker.' }
+    }
+
+    // Wait for active service worker
+    await navigator.serviceWorker.ready
+
+    const { publicKey } = await api.vapidKey()
+    const appServerKey = urlBase64ToUint8Array(publicKey)
+
+    const existingSub = await reg.pushManager.getSubscription()
+    if (existingSub) {
+      // Unsubscribe existing if needed or re-send to server
+      const keyObj = existingSub.toJSON()
+      if (keyObj.keys?.p256dh && keyObj.keys?.auth) {
+        await api.subscribePush({
+          endpoint: existingSub.endpoint,
+          keys: {
+            p256dh: keyObj.keys.p256dh,
+            auth: keyObj.keys.auth,
+          },
+        })
+        return { ok: true }
+      }
+    }
+
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: appServerKey as any,
+    })
+
+    const subJson = subscription.toJSON()
+    if (!subJson.keys?.p256dh || !subJson.keys?.auth) {
+      return { ok: false, error: 'Không lấy được khóa bảo mật của thiết bị.' }
+    }
+
+    await api.subscribePush({
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: subJson.keys.p256dh,
+        auth: subJson.keys.auth,
+      },
+    })
+
+    return { ok: true }
+  } catch (err: any) {
+    console.error('Push subscribe error:', err)
+    return { ok: false, error: err.message || 'Lỗi khi đăng ký thông báo.' }
+  }
+}
+
+export async function unsubscribeFromPush(): Promise<{ ok: boolean }> {
+  if (!isPushSupported()) return { ok: true }
+
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
+    if (sub) {
+      await api.unsubscribePush({ endpoint: sub.endpoint })
+      await sub.unsubscribe()
+    }
+    return { ok: true }
+  } catch {
+    return { ok: false }
+  }
+}

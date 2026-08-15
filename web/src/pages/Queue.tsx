@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { ReminderSettingsModal } from '../components/ReminderSettingsModal'
 import { Alert, Empty, Spinner, StatusBadge, formatDate } from '../components/ui'
 import { ApiError, PLATFORM_LABELS, api, type Content, type Stats } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -17,6 +18,7 @@ export function Queue() {
   const [loading, setLoading] = useState(true)
   const [claimingId, setClaimingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [showReminderModal, setShowReminderModal] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -64,6 +66,31 @@ export function Queue() {
   return (
     <div className="page stack" style={{ paddingBottom: 88 }}>
       {error && <Alert>{error}</Alert>}
+
+      {/* Reminder Banner */}
+      {currentTab === 'tasks' && (mine.length > 0 || available.length > 0) && (
+        <div className="reminder-banner">
+          <div className="reminder-banner-content">
+            <span className="reminder-banner-icon">⏰</span>
+            <div>
+              <strong>Nhắc nhở bài đăng hôm nay:</strong>{' '}
+              <span>
+                {mine.length > 0
+                  ? `Bạn đang có ${mine.length} bài cần hoàn tất và dán link.`
+                  : `Đang có ${stats?.available ?? available.length} bài viết mới sẵn sàng đăng.`}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            style={{ border: '1px solid var(--accent)', color: 'var(--accent)', flexShrink: 0 }}
+            onClick={() => setShowReminderModal(true)}
+          >
+            ⚙️ Cài đặt giờ nhắc
+          </button>
+        </div>
+      )}
 
       {currentTab === 'tasks' ? (
         <>
@@ -199,6 +226,8 @@ export function Queue() {
           </button>
         </div>
       </nav>
+
+      {showReminderModal && <ReminderSettingsModal onClose={() => setShowReminderModal(false)} />}
     </div>
   )
 }

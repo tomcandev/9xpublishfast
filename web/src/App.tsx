@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { Alert, Spinner } from './components/ui'
+import { BellIcon, ReminderSettingsModal } from './components/ReminderSettingsModal'
 import { api } from './lib/api'
 import { useAuth } from './lib/auth'
 import { Admin } from './pages/Admin'
@@ -12,6 +13,7 @@ export function App() {
   const { user, loading, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [showReminderModal, setShowReminderModal] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -62,6 +64,18 @@ export function App() {
                     role="menuitem"
                     onClick={() => {
                       setMenuOpen(false)
+                      setShowReminderModal(true)
+                    }}
+                  >
+                    <BellIcon />
+                    <span>Giờ nhắc đăng bài</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="dropdown-item"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuOpen(false)
                       setShowPasswordModal(true)
                     }}
                   >
@@ -98,6 +112,7 @@ export function App() {
       </main>
 
       {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
+      {showReminderModal && <ReminderSettingsModal onClose={() => setShowReminderModal(false)} />}
     </div>
   )
 }

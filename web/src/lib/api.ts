@@ -53,6 +53,14 @@ export interface Stats {
   published: number
 }
 
+export interface ReminderSettingsData {
+  enabled: boolean
+  reminderTimes: string[]
+  timezone: string
+  hasSubscription: boolean
+  subscriptionCount: number
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -110,6 +118,36 @@ export const api = {
     request<{ ok: true }>('/api/auth/change-password', {
       method: 'POST',
       body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
+  vapidKey: () => request<{ publicKey: string }>('/api/notifications/vapid-key'),
+
+  notificationSettings: () => request<ReminderSettingsData>('/api/notifications/settings'),
+
+  updateNotificationSettings: (input: { enabled: boolean; reminderTimes: string[]; timezone?: string }) =>
+    request<{ ok: true; enabled: boolean; reminderTimes: string[]; timezone: string }>(
+      '/api/notifications/settings',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    ),
+
+  subscribePush: (input: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
+    request<{ ok: true }>('/api/notifications/subscribe', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  unsubscribePush: (input: { endpoint: string }) =>
+    request<{ ok: true }>('/api/notifications/unsubscribe', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  testNotification: () =>
+    request<{ ok: true; sentTo: number }>('/api/notifications/test', {
+      method: 'POST',
     }),
 
   me: () => request<{ user: User }>('/api/me'),

@@ -13,7 +13,9 @@ import { assetRoutes } from './routes/assets.js'
 import { authRoutes } from './routes/auth.js'
 import { contentRoutes } from './routes/contents.js'
 import { ingestRoutes } from './routes/ingest.js'
+import { notificationRoutes } from './routes/notifications.js'
 import { publicationRoutes } from './routes/publications.js'
+import { startReminderScheduler, stopReminderScheduler } from './lib/reminderScheduler.js'
 
 const app = Fastify({
   logger: { level: config.isProd ? 'info' : 'warn' },
@@ -34,6 +36,9 @@ await app.register(publicationRoutes)
 await app.register(assetRoutes)
 await app.register(ingestRoutes)
 await app.register(adminRoutes)
+await app.register(notificationRoutes)
+
+startReminderScheduler()
 
 app.get('/api/health', async () => ({ ok: true }))
 
@@ -62,6 +67,7 @@ console.log(`PublishFast API on http://${config.host}:${config.port}`)
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, async () => {
+    stopReminderScheduler()
     await app.close()
     process.exit(0)
   })

@@ -111,8 +111,44 @@ export const apiTokens = sqliteTable(
   (t) => [uniqueIndex('api_tokens_hash_unique').on(t.tokenHash)],
 )
 
+export const reminderSettings = sqliteTable(
+  'reminder_settings',
+  {
+    userId: text('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+    /** Comma-separated times: e.g. "09:00,12:30,20:00" */
+    reminderTimes: text('reminder_times').notNull().default('09:00,12:30,20:00'),
+    timezone: text('timezone').notNull().default('Asia/Ho_Chi_Minh'),
+    lastNotifiedDate: text('last_notified_date'),
+    updatedAt: text('updated_at').notNull().default(now),
+  },
+)
+
+export const pushSubscriptions = sqliteTable(
+  'push_subscriptions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    endpoint: text('endpoint').notNull(),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+    createdAt: text('created_at').notNull().default(now),
+  },
+  (t) => [
+    uniqueIndex('push_subscriptions_endpoint_unique').on(t.endpoint),
+    index('push_subscriptions_user_idx').on(t.userId),
+  ],
+)
+
 export type User = typeof users.$inferSelect
 export type Content = typeof contents.$inferSelect
 export type Asset = typeof assets.$inferSelect
 export type Publication = typeof publications.$inferSelect
 export type ApiToken = typeof apiTokens.$inferSelect
+export type ReminderSettings = typeof reminderSettings.$inferSelect
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect
+
