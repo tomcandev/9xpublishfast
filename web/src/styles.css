@@ -332,10 +332,15 @@ a { color: var(--accent); text-underline-offset: 2px; }
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 14px;
+  padding: 13px 14px;
   white-space: pre-wrap;
   word-break: break-word;
-  line-height: 1.65;
+  line-height: 1.6;
+  font-size: 0.9rem;
+  max-height: 170px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 
 /* ---------- list ---------- */
