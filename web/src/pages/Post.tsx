@@ -161,11 +161,16 @@ export function Post() {
     )
   }
 
+  const [activeSlide, setActiveSlide] = useState(0)
+
   const videos = content.assets.filter((a) => a.type === 'video')
   const images = content.assets.filter((a) => a.type === 'image')
   const savedCount = content.publications.filter((p) => p.publishedUrl).length
   const videosTotalSize = videos.reduce((sum, v) => sum + v.size, 0)
   const imagesTotalSize = images.reduce((sum, img) => sum + img.size, 0)
+
+  // Ensure activeSlide stays within bounds if content changes
+  const currentSlideIndex = Math.min(activeSlide, Math.max(0, images.length - 1))
 
   return (
     <div className="page stack">
@@ -252,12 +257,56 @@ export function Post() {
               ))}
 
               {images.length > 0 && (
-                <div className="thumbs">
-                  {images.map((img) => (
-                    <a key={img.id} href={assetUrl(img.id)} target="_blank" rel="noreferrer">
-                      <img className="thumb" src={assetUrl(img.id)} alt={img.originalName} loading="lazy" />
-                    </a>
-                  ))}
+                <div className="carousel-viewer">
+                  {/* Main Preview with Left/Right Navigation */}
+                  <div className="carousel-main">
+                    <img
+                      className="carousel-main-img"
+                      src={assetUrl(images[currentSlideIndex]!.id)}
+                      alt={images[currentSlideIndex]!.originalName}
+                    />
+                    <span className="carousel-slide-badge">
+                      Slide {currentSlideIndex + 1} / {images.length}
+                    </span>
+                    {images.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          className="carousel-arrow carousel-arrow-prev"
+                          onClick={() => setActiveSlide((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
+                          aria-label="Previous slide"
+                        >
+                          ‹
+                        </button>
+                        <button
+                          type="button"
+                          className="carousel-arrow carousel-arrow-next"
+                          onClick={() => setActiveSlide((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
+                          aria-label="Next slide"
+                        >
+                          ›
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Horizontal scroll strip with numbered sequence badges 1, 2, 3, 4 */}
+                  <div className="carousel-strip" role="tablist" aria-label="Carousel slides">
+                    {images.map((img, idx) => (
+                      <button
+                        key={img.id}
+                        type="button"
+                        className={`carousel-thumb-wrap ${currentSlideIndex === idx ? 'active' : ''}`}
+                        onClick={() => setActiveSlide(idx)}
+                        role="tab"
+                        aria-selected={currentSlideIndex === idx}
+                        aria-label={`Select slide ${idx + 1}`}
+                      >
+                        <img className="carousel-thumb-img" src={assetUrl(img.id)} alt={img.originalName} loading="lazy" />
+                        <span className="carousel-thumb-badge">{idx + 1}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
