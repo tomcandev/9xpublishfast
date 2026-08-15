@@ -88,3 +88,56 @@ export function formatDate(iso: string | null) {
     minute: '2-digit',
   })
 }
+
+export function ErrorDialog({
+  title = 'Error',
+  message,
+  onClose,
+}: {
+  title?: string
+  message: string
+  onClose: () => void
+}) {
+  return (
+    <div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div className="modal-card stack" style={{ maxWidth: 380, gap: 16 }}>
+        <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+          <span
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'var(--danger-soft)',
+              color: 'var(--danger)',
+              display: 'grid',
+              placeItems: 'center',
+              flexShrink: 0,
+              fontSize: '1rem',
+              fontWeight: 700,
+            }}
+          >
+            !
+          </span>
+          <h2 style={{ fontSize: '1.15rem', margin: 0 }}>{title}</h2>
+        </div>
+
+        <p style={{ color: 'var(--text-soft)', fontSize: '0.92rem', lineHeight: 1.5, margin: 0 }}>
+          {message}
+        </p>
+
+        <div className="row" style={{ justifyContent: 'flex-end', marginTop: 4 }}>
+          <button type="button" className="btn btn-primary" onClick={onClose} autoFocus>
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
