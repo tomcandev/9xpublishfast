@@ -9,8 +9,8 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('push', (event) => {
   let data = {
-    title: '⏰ Đã đến giờ đăng bài!',
-    body: 'Hàng đợi đang có nội dung mới. Vào nhận và đăng ngay nhé!',
+    title: '⏰ Time to publish your post!',
+    body: 'The queue has new content ready. Claim and post now!',
     icon: '/favicon.ico',
     badge: '/favicon.ico',
     tag: 'publishfast-reminder',

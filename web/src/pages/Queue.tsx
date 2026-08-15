@@ -73,11 +73,11 @@ export function Queue() {
           <div className="reminder-banner-content">
             <span className="reminder-banner-icon">⏰</span>
             <div>
-              <strong>Nhắc nhở bài đăng hôm nay:</strong>{' '}
+              <strong>Daily Post Reminder:</strong>{' '}
               <span>
                 {mine.length > 0
-                  ? `Bạn đang có ${mine.length} bài cần hoàn tất và dán link.`
-                  : `Đang có ${stats?.available ?? available.length} bài viết mới sẵn sàng đăng.`}
+                  ? `You have ${mine.length} post(s) in progress waiting to be published.`
+                  : `${stats?.available ?? available.length} new post(s) available in the queue.`}
               </span>
             </div>
           </div>
@@ -87,7 +87,7 @@ export function Queue() {
             style={{ border: '1px solid var(--accent)', color: 'var(--accent)', flexShrink: 0 }}
             onClick={() => setShowReminderModal(true)}
           >
-            ⚙️ Cài đặt giờ nhắc
+            ⚙️ Reminder Settings
           </button>
         </div>
       )}

@@ -170,9 +170,11 @@ Content-Type: multipart/form-data (field: file)
 
 ## Engineering Rules for AI Collaborators
 
+* **Strict English Codebase Standard**: All code, features, variable names, functions, comments, UI text, labels, user-facing copy, error messages, docs, and git commit messages MUST be written strictly in English. Only direct conversational communication/replies with the user may be in Vietnamese.
 * Always preserve atomic CAS patterns for any state transitions
 * Keep all dependencies strictly MIT or Apache-2.0
 * Maintain route-level permission checks for all new endpoints
 * Follow vanilla CSS tokens defined in [`web/src/styles.css`](file:///Users/tom/Desktop/tomcandev/projects/publishfast/web/src/styles.css) without introducing heavy UI frameworks
 * Run `npm test` and `npm run build` after modifying server or web code to prevent regressions
 * Automatically commit and push changes directly to GitHub after verifying tests and build pass, without waiting or asking for reminders
+

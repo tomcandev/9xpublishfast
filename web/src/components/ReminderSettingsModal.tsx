@@ -4,10 +4,10 @@ import { api, type ReminderSettingsData } from '../lib/api'
 import { isPushSupported, subscribeToPush, unsubscribeFromPush } from '../lib/pushClient'
 
 const PRESET_TIMES = [
-  { label: '09:00 (Sáng)', value: '09:00' },
-  { label: '12:30 (Trưa)', value: '12:30' },
-  { label: '19:30 (Tối)', value: '19:30' },
-  { label: '21:00 (Đêm)', value: '21:00' },
+  { label: '09:00 (Morning)', value: '09:00' },
+  { label: '12:30 (Afternoon)', value: '12:30' },
+  { label: '19:30 (Evening)', value: '19:30' },
+  { label: '21:00 (Night)', value: '21:00' },
 ]
 
 export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
@@ -39,7 +39,7 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
         setHasSubscription(data.hasSubscription)
         setSubscriptionCount(data.subscriptionCount)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Không thể tải cài đặt thông báo')
+        setError(err instanceof Error ? err.message : 'Failed to load notification settings')
       } finally {
         setLoading(false)
       }
@@ -51,7 +51,7 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
     const trimmed = timeToAdd.trim()
     if (!trimmed) return
     if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(trimmed)) {
-      setError('Định dạng giờ không hợp lệ (VD: 09:30, 20:00)')
+      setError('Invalid time format (e.g. 09:30, 20:00)')
       return
     }
     if (!times.includes(trimmed)) {
@@ -64,7 +64,7 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
 
   function removeTime(timeToRemove: string) {
     if (times.length <= 1) {
-      setError('Cần giữ ít nhất 1 khung giờ nhắc nhở')
+      setError('Must keep at least one reminder time')
       return
     }
     setTimes(times.filter((t) => t !== timeToRemove))
@@ -80,18 +80,18 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
         await unsubscribeFromPush()
         setHasSubscription(false)
         setSubscriptionCount((c) => Math.max(0, c - 1))
-        setSuccess('Đã hủy đăng ký thông báo trên thiết bị này.')
+        setSuccess('Unsubscribed from notifications on this device.')
       } else {
         const res = await subscribeToPush()
         if (!res.ok) {
-          setError(res.error || 'Không thể bật thông báo.')
+          setError(res.error || 'Failed to enable notifications.')
         } else {
           setHasSubscription(true)
           setSubscriptionCount((c) => c + 1)
           if (typeof window !== 'undefined' && 'Notification' in window) {
             setPermission(Notification.permission)
           }
-          setSuccess('✓ Thiết bị này đã sẵn sàng nhận thông báo nhắc nhở!')
+          setSuccess('✓ This device is now ready to receive reminders!')
         }
       }
     } finally {
@@ -105,9 +105,9 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
     setTesting(true)
     try {
       const res = await api.testNotification()
-      setSuccess(`✓ Đã gửi thông báo thử nghiệm tới ${res.sentTo} thiết bị!`)
+      setSuccess(`✓ Test notification sent to ${res.sentTo} device(s)!`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gửi thông báo thử nghiệm thất bại')
+      setError(err instanceof Error ? err.message : 'Failed to send test notification')
     } finally {
       setTesting(false)
     }
@@ -124,12 +124,12 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
         reminderTimes: times,
         timezone,
       })
-      setSuccess('✓ Cài đặt nhắc nhở đã được lưu thành công!')
+      setSuccess('✓ Reminder settings saved successfully!')
       setTimeout(() => {
         onClose()
       }, 1400)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể lưu cài đặt')
+      setError(err instanceof Error ? err.message : 'Failed to save settings')
       setBusy(false)
     }
   }
@@ -145,7 +145,7 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <h2 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>⏰</span>
-            <span>Nhắc nhở đăng bài hàng ngày</span>
+            <span>Daily Post Reminders</span>
           </h2>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
             ✕
@@ -171,9 +171,9 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
               }}
             >
               <div>
-                <strong style={{ display: 'block', fontSize: '0.95rem' }}>Bật thông báo nhắc nhở</strong>
+                <strong style={{ display: 'block', fontSize: '0.95rem' }}>Enable Reminders</strong>
                 <span className="hint" style={{ fontSize: '0.8rem' }}>
-                  Tự động thông báo khi có video mới hoặc bài viết chưa đăng
+                  Auto-notify when new content is ready or tasks remain unposted
                 </span>
               </div>
               <label className="switch">
@@ -190,7 +190,7 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
             {enabled && (
               <div className="stack" style={{ gap: 10 }}>
                 <label className="label" style={{ fontWeight: 650 }}>
-                  Khung giờ nhắc nhở mỗi ngày ({timezone}):
+                  Reminder Times Daily ({timezone}):
                 </label>
 
                 {/* Preset Chips */}
@@ -255,7 +255,7 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
                           lineHeight: 1,
                         }}
                         onClick={() => removeTime(t)}
-                        title="Xóa giờ này"
+                        title="Remove time"
                       >
                         ✕
                       </button>
@@ -278,7 +278,7 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
                     onClick={() => addTime(newTime)}
                     disabled={!newTime}
                   >
-                    + Thêm giờ tùy chỉnh
+                    + Add Custom Time
                   </button>
                 </div>
               </div>
@@ -298,12 +298,12 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
               <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <strong style={{ fontSize: '0.92rem', display: 'block' }}>
-                    📱 Kết nối Thông báo tới thiết bị này
+                    📱 Connect Push Notifications to this device
                   </strong>
                   <span className="hint" style={{ fontSize: '0.78rem' }}>
                     {subscriptionCount > 0
-                      ? `Đang có ${subscriptionCount} thiết bị đăng ký nhận thông báo`
-                      : 'Chưa có thiết bị nào kích hoạt nhận thông báo'}
+                      ? `${subscriptionCount} device(s) currently registered for push notifications`
+                      : 'No devices registered yet'}
                   </span>
                 </div>
 
@@ -315,14 +315,14 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
                     disabled={subscribing}
                   >
                     {subscribing
-                      ? 'Đang xử lý…'
+                      ? 'Processing…'
                       : hasSubscription
-                        ? 'Tắt trên thiết bị này'
-                        : '🔔 Bật thông báo trên máy này'}
+                        ? 'Disable on this device'
+                        : '🔔 Enable Push on this device'}
                   </button>
                 ) : (
                   <span className="badge" style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>
-                    Trình duyệt không hỗ trợ Web Push
+                    Browser does not support Web Push
                   </span>
                 )}
               </div>
@@ -335,24 +335,24 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
                     onClick={handleTestPush}
                     disabled={testing}
                   >
-                    {testing ? '⏳ Đang gửi…' : '🧪 Gửi thông báo kiểm tra (Test Push)'}
+                    {testing ? '⏳ Sending…' : '🧪 Send Test Push Notification'}
                   </button>
                 </div>
               )}
 
               <p className="hint" style={{ fontSize: '0.75rem', margin: 0, opacity: 0.85 }}>
-                💡 <strong>Mẹo trên iPhone:</strong> Mở Safari ➔ Bấm nút Chia sẻ ➔ Chọn{' '}
-                <strong>"Thêm vào Màn hình chính" (Add to Home Screen)</strong> để nhận thông báo đẩy ra màn hình khóa như ứng dụng thông thường.
+                💡 <strong>Tip for iPhone users:</strong> Open Safari ➔ Tap the Share button ➔ Select{' '}
+                <strong>"Add to Home Screen"</strong> to receive lock screen push notifications just like a native app.
               </p>
             </div>
 
             {/* ---- Action Buttons ---- */}
             <div className="row" style={{ justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
               <button type="button" className="btn btn-ghost" onClick={onClose} disabled={busy}>
-                Đóng
+                Cancel
               </button>
               <button type="submit" className="btn btn-primary" disabled={busy}>
-                {busy ? 'Đang lưu…' : 'Lưu cài đặt'}
+                {busy ? 'Saving…' : 'Save Settings'}
               </button>
             </div>
           </form>

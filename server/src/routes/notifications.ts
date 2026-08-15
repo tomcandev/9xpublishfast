@@ -182,15 +182,15 @@ export async function notificationRoutes(app: FastifyInstance) {
 
     if (subs.length === 0) {
       return reply.code(400).send({
-        error: 'Chưa có thiết bị nào đăng ký nhận thông báo. Vui lòng bấm Bật thông báo trên thiết bị này trước!',
+        error: 'No active device subscription found. Please enable notifications on this device first!',
       })
     }
 
     let successCount = 0
     for (const sub of subs) {
       const result = await sendPushNotification(sub, {
-        title: '🔔 PublishFast: Kiểm tra thông báo',
-        body: 'Thông báo nhắc nhở bài đăng đã được kết nối thành công với thiết bị của bạn!',
+        title: '🔔 PublishFast: Test Notification',
+        body: 'Daily post reminders are successfully connected to your device!',
         icon: '/favicon.ico',
         badge: '/favicon.ico',
         tag: `test-${user.id}`,
@@ -205,7 +205,7 @@ export async function notificationRoutes(app: FastifyInstance) {
     }
 
     if (successCount === 0) {
-      return reply.code(500).send({ error: 'Không thể gửi thông báo tới thiết bị. Vui lòng đăng ký lại.' })
+      return reply.code(500).send({ error: 'Failed to send notification to device. Please re-subscribe.' })
     }
 
     return { ok: true, sentTo: successCount }

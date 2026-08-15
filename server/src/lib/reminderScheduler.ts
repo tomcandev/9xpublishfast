@@ -99,13 +99,13 @@ export async function checkAndSendReminders() {
       continue
     }
 
-    let title = '⏰ Đã đến giờ đăng bài!'
+    let title = '⏰ Time to publish your post!'
     let body = ''
 
     if (inProgressCount > 0) {
-      body = `Bạn đang có ${inProgressCount} bài viết đang thực hiện. Vào hoàn tất và dán link nhé!`
+      body = `You have ${inProgressCount} post(s) in progress. Complete and paste live links now!`
     } else {
-      body = `Hàng đợi đang có ${readyCount} bài viết mới sẵn sàng. Vào nhận và đăng ngay nhé!`
+      body = `The queue has ${readyCount} new post(s) ready. Claim and post now!`
     }
 
     // Get all push subscriptions for this user

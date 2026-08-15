@@ -36,18 +36,18 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 
 export async function subscribeToPush(): Promise<{ ok: boolean; error?: string }> {
   if (!isPushSupported()) {
-    return { ok: false, error: 'Trình duyệt của bạn không hỗ trợ Web Push Notifications.' }
+    return { ok: false, error: 'Your browser does not support Web Push Notifications.' }
   }
 
   try {
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') {
-      return { ok: false, error: 'Bạn đã từ chối cấp quyền thông báo. Vui lòng bật lại trong cài đặt trình duyệt.' }
+      return { ok: false, error: 'Notification permission was denied. Please allow notifications in browser settings.' }
     }
 
     const reg = await registerServiceWorker()
     if (!reg) {
-      return { ok: false, error: 'Không thể đăng ký Service Worker.' }
+      return { ok: false, error: 'Could not register Service Worker.' }
     }
 
     // Wait for active service worker
@@ -79,7 +79,7 @@ export async function subscribeToPush(): Promise<{ ok: boolean; error?: string }
 
     const subJson = subscription.toJSON()
     if (!subJson.keys?.p256dh || !subJson.keys?.auth) {
-      return { ok: false, error: 'Không lấy được khóa bảo mật của thiết bị.' }
+      return { ok: false, error: 'Could not retrieve device security keys.' }
     }
 
     await api.subscribePush({
@@ -93,7 +93,7 @@ export async function subscribeToPush(): Promise<{ ok: boolean; error?: string }
     return { ok: true }
   } catch (err: any) {
     console.error('Push subscribe error:', err)
-    return { ok: false, error: err.message || 'Lỗi khi đăng ký thông báo.' }
+    return { ok: false, error: err.message || 'Failed to subscribe to notifications.' }
   }
 }
 

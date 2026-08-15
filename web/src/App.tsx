@@ -68,7 +68,7 @@ export function App() {
                     }}
                   >
                     <BellIcon />
-                    <span>Giờ nhắc đăng bài</span>
+                    <span>Daily Reminders</span>
                   </button>
                   <button
                     type="button"
