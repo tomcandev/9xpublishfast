@@ -196,16 +196,16 @@ export function Post() {
           <div className="guide-step">
             <div className="guide-step-badge">2</div>
             <div className="guide-step-body">
-              <strong>Copy Caption & Post</strong>
-              <span>Copy caption, post in-app with your audio, stickers, text</span>
+              <strong>Copy Caption & Customize</strong>
+              <span>Copy caption, add trending audio, stickers & tags in the app</span>
             </div>
           </div>
 
           <div className="guide-step">
             <div className="guide-step-badge">3</div>
             <div className="guide-step-body">
-              <strong>Paste Link & Finish</strong>
-              <span>Copy published link from the app and paste here to complete</span>
+              <strong>Publish & Paste Live Link</strong>
+              <span>Publish on your channel, copy the live post link, and paste below</span>
             </div>
           </div>
         </div>
@@ -266,9 +266,11 @@ export function Post() {
         <div className="stack" style={{ gap: 3 }}>
           <div className="step-header">
             <span className="step-badge">Step 3</span>
-            <h2>Paste Published Links</h2>
+            <h2>Publish & Paste Live Links</h2>
           </div>
-          <p className="hint">Paste links from each platform. Changes are automatically saved.</p>
+          <p className="hint">
+            After publishing natively, copy the live post URL and paste it here. Links are saved automatically.
+          </p>
         </div>
 
         <div className="link-rows">
@@ -289,7 +291,7 @@ export function Post() {
                     className="input link-row-input"
                     type="url"
                     inputMode="url"
-                    placeholder="Paste link here…"
+                    placeholder="Paste live post link (https://…)"
                     value={urls[platform] ?? ''}
                     onChange={(e) => handleUrlChange(platform, e.target.value)}
                     onBlur={() => handleUrlBlur(platform)}
