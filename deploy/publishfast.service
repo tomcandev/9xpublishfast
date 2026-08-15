@@ -1,0 +1,23 @@
+[Unit]
+Description=PublishFast
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/projects/publishfast
+# Absolute path to the nvm-installed Node 22 binary: systemd does not source
+# nvm.sh, so a bare `node` may resolve to a different (incompatible) version.
+ExecStart=/home/ubuntu/.nvm/versions/node/v22.23.2/bin/node server/dist/index.js
+EnvironmentFile=/home/ubuntu/projects/publishfast/.env
+Environment=NODE_ENV=production
+Restart=on-failure
+RestartSec=5
+
+# The process only needs its own directory.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

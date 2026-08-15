@@ -1,0 +1,107 @@
+import { and, asc, eq, isNull, or, sql } from 'drizzle-orm'
+import { db, sqlite } from '../db/index.js'
+import { contents, type Content } from '../db/schema.js'
+
+export type ClaimResult =
+  | { ok: true; content: Content }
+  | { ok: false; reason: 'not_found' | 'already_claimed' | 'empty_queue' }
+
+/**
+ * Claim one specific content item.
+ *
+ * The guard is the `status = 'READY'` predicate inside the UPDATE itself, not a
+ * read-then-write. SQLite serializes writers, so if two KOLs race for the same
+ * row exactly one UPDATE matches a READY row and the other matches nothing.
+ * `changes === 0` therefore means "someone else won", never "maybe won".
+ *
+ * This is the requirement (plan.txt §5) that Directus's free tier could not
+ * express: filtered permissions are licence-gated there, so the lock had to
+ * move into application code.
+ */
+export function claimContent(contentId: string, userId: string): ClaimResult {
+  const now = new Date().toISOString()
+
+  const result = db
+    .update(contents)
+    .set({ status: 'CLAIMED', claimedBy: userId, claimedAt: now })
+    .where(
+      and(
+        eq(contents.id, contentId),
+        eq(contents.status, 'READY'),
+        // A pre-assigned item may only be claimed by its assignee.
+        or(isNull(contents.assignedUserId), eq(contents.assignedUserId, userId)),
+      ),
+    )
+    .run()
+
+  if (result.changes === 1) {
+    return { ok: true, content: db.select().from(contents).where(eq(contents.id, contentId)).get()! }
+  }
+
+  const existing = db.select().from(contents).where(eq(contents.id, contentId)).get()
+  if (!existing) return { ok: false, reason: 'not_found' }
+  return { ok: false, reason: 'already_claimed' }
+}
+
+/**
+ * Claim the oldest available item. Selecting a candidate and claiming it are
+ * two statements, so another worker can take the row in between — that is
+ * exactly what the retry loop absorbs. Each attempt is still atomic; we simply
+ * pick the next candidate when we lose a race.
+ */
+export function claimNext(userId: string, maxAttempts = 25): ClaimResult {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const candidate = db
+      .select()
+      .from(contents)
+      .where(
+        and(
+          eq(contents.status, 'READY'),
+          or(isNull(contents.assignedUserId), eq(contents.assignedUserId, userId)),
+        ),
+      )
+      // Items explicitly assigned to this user come first, then oldest first.
+      .orderBy(sql`${contents.assignedUserId} is null`, asc(contents.createdAt))
+      .limit(1)
+      .get()
+
+    if (!candidate) return { ok: false, reason: 'empty_queue' }
+
+    const claimed = claimContent(candidate.id, userId)
+    if (claimed.ok) return claimed
+    // Lost the race for this row — try the next candidate.
+  }
+  return { ok: false, reason: 'empty_queue' }
+}
+
+/** Return a claimed item to the queue. Only the claimant (or an admin) may do this. */
+export function releaseContent(contentId: string, userId: string, isAdmin = false) {
+  const result = db
+    .update(contents)
+    .set({ status: 'READY', claimedBy: null, claimedAt: null })
+    .where(
+      and(
+        eq(contents.id, contentId),
+        eq(contents.status, 'CLAIMED'),
+        ...(isAdmin ? [] : [eq(contents.claimedBy, userId)]),
+      ),
+    )
+    .run()
+  return result.changes === 1
+}
+
+/**
+ * Reclaim items stuck in CLAIMED for longer than `hours`. Not scheduled by
+ * default — exposed so an admin (or a cron hitting the admin API) can run it.
+ */
+export function releaseStaleClaims(hours: number) {
+  const cutoff = new Date(Date.now() - hours * 3_600_000).toISOString()
+  return db
+    .update(contents)
+    .set({ status: 'READY', claimedBy: null, claimedAt: null })
+    .where(and(eq(contents.status, 'CLAIMED'), sql`${contents.claimedAt} < ${cutoff}`))
+    .run().changes
+}
+
+/** Exposed for the concurrency test so it can reset between runs. */
+export { sqlite as _sqlite }

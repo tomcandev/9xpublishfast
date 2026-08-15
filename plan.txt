@@ -1,0 +1,1615 @@
+# Handover Context – Manual Content Distribution System
+
+Tôi đang thiết kế một hệ thống nhỏ để quản lý và phân phối content, chủ yếu là video ngắn và carousel cho TikTok, Instagram, YouTube Shorts hoặc các social platform tương tự.
+
+Tôi muốn AI khác đọc tài liệu này và hiểu đầy đủ mục tiêu, những phương án đã thảo luận, các kết luận đã rút ra và tiếp tục thiết kế/triển khai hệ thống mà không cần hỏi lại từ đầu.
+
+---
+
+# 1. Mục tiêu ban đầu
+
+Workflow ban đầu tôi hình dung rất đơn giản.
+
+Có một server chứa các bài content.
+
+Mỗi bài có thể gồm:
+
+* Code hoặc ID.
+* Name/title.
+* Description/caption.
+* Một video.
+* Hoặc nhiều hình cho carousel.
+* Platform dự kiến.
+* Status.
+* Người/KOL/account được phân phối.
+* Sau khi đăng thì lưu URL bài đã đăng.
+
+Người đăng/KOL sẽ vào hệ thống, chọn hoặc nhận một bài.
+
+Sau đó họ có thể:
+
+1. Xem preview.
+2. Download video hoặc carousel.
+3. Copy caption/text chỉ với một thao tác.
+4. Mở TikTok/Instagram.
+5. Đăng thủ công.
+6. Quay lại hệ thống.
+7. Paste URL bài đã đăng.
+8. Đánh dấu hoàn thành.
+
+Ví dụ:
+
+```text
+PTE-RS-001
+
+[ VIDEO PREVIEW ]
+
+Caption:
+Most PTE students make this mistake...
+
+[ Copy Caption ]
+
+[ Download Video ]
+
+Published URL:
+[____________________________]
+
+[ Complete ]
+```
+
+---
+
+# 2. Điểm quan trọng: đây là manual-first, không phải social scheduler
+
+Ban đầu chúng tôi xem xét các social media management platform như:
+
+* Postiz
+* Mixpost
+* BrightBean Studio
+* LateWiz
+* TryPost
+
+Những platform này tập trung nhiều vào:
+
+```text
+Create
+→ Schedule
+→ Connect social account
+→ Auto publish
+→ Analytics
+```
+
+Trong khi workflow của tôi thực chất là:
+
+```text
+AI creates content
+        ↓
+Content repository / queue
+        ↓
+Human takes content
+        ↓
+Download media
++
+Copy caption
+        ↓
+Publish manually in TikTok / Instagram
+        ↓
+Paste resulting URL
+        ↓
+Mark completed
+```
+
+Đây là sự khác biệt rất quan trọng.
+
+Tôi muốn giữ manual posting vì người đăng có thể cần:
+
+* Chọn trending sound trực tiếp trong TikTok.
+* Thêm native text.
+* Chỉnh caption.
+* Chọn cover.
+* Dùng effects.
+* Dùng các tính năng native của social app.
+* Thực hiện các bước mà API publishing không hỗ trợ tốt.
+
+Do đó không nên cố ép workflow này vào Postiz hoặc một social scheduler lớn nếu không cần thiết.
+
+---
+
+# 3. Tương lai có thể có automation
+
+Dù hiện tại workflow là manual, architecture không nên giới hạn ở con người.
+
+Server sẽ có một API/interface để AI tự động đưa content vào.
+
+Về lâu dài phía distribution có thể có nhiều loại worker.
+
+Ví dụ:
+
+```text
+                  CONTENT SERVER
+                       │
+        ┌──────────────┼──────────────┐
+        │              │              │
+     Human          API Worker    Device Worker
+        │              │              │
+        ↓              ↓              ↓
+    Manual        Official API    TikTok/IG app
+    posting        publishing      automation
+```
+
+Tức là hiện tại:
+
+```text
+READY
+ ↓
+Human
+ ↓
+TikTok
+ ↓
+PUBLISHED
+```
+
+Sau này có thể là:
+
+```text
+READY
+ ↓
+Automatic Worker
+ ↓
+TikTok
+ ↓
+PUBLISHED
+```
+
+Core content system không nên cần thay đổi.
+
+---
+
+# 4. Content Distribution Queue
+
+Tên mô hình phù hợp hơn social media manager là:
+
+> Content Distribution Queue
+
+hoặc:
+
+> Content Distribution / Content Operations System
+
+Nó có hai đầu.
+
+## Input
+
+AI hoặc con người tạo content:
+
+```text
+AI
+ ↓
+caption
+video
+carousel
+metadata
+ ↓
+Content API
+```
+
+## Output
+
+Human hoặc automation lấy content:
+
+```text
+Content Queue
+ ↓
+worker claims content
+ ↓
+download / publish
+ ↓
+return URL/result
+```
+
+---
+
+# 5. Requirement quan trọng: tránh hai người lấy cùng một bài
+
+Một trong những chức năng quan trọng nhất là assignment/locking.
+
+Ví dụ status:
+
+```text
+DRAFT
+READY
+CLAIMED
+PUBLISHED
+FAILED
+```
+
+Khi KOL A lấy bài:
+
+```text
+READY
+ ↓
+CLAIMED
+```
+
+và lưu:
+
+```text
+claimed_by = KOL_A
+claimed_at = timestamp
+```
+
+Nhờ vậy KOL B không lấy cùng bài đó.
+
+Khi đăng xong:
+
+```text
+CLAIMED
+ ↓
+PUBLISHED
+```
+
+và lưu:
+
+```text
+published_url
+published_at
+platform
+```
+
+Có thể sau này có cơ chế claim timeout nếu worker lấy bài nhưng không hoàn thành.
+
+---
+
+# 6. API dự kiến
+
+AI phía đầu vào cần API.
+
+Ví dụ:
+
+```text
+POST /content
+```
+
+để tạo content.
+
+Worker có thể gọi:
+
+```text
+GET /next
+```
+
+để lấy bài tiếp theo.
+
+Hoặc:
+
+```text
+GET /contents?status=READY
+```
+
+Sau đó:
+
+```text
+POST /claim/:id
+```
+
+Đăng xong:
+
+```text
+POST /complete/:id
+```
+
+Payload completion có thể gồm:
+
+```json
+{
+  "platform": "tiktok",
+  "published_url": "...",
+  "published_at": "..."
+}
+```
+
+---
+
+# 7. Data model đã thảo luận
+
+Có hai cách.
+
+## MVP rất đơn giản
+
+Nếu mỗi content chỉ được đăng một lần:
+
+```text
+contents
+
+id
+code
+title
+caption
+media
+content_type
+platform
+status
+assigned_to
+claimed_at
+published_url
+published_at
+created_at
+```
+
+Cách này đơn giản nhất.
+
+---
+
+## Model tốt hơn nếu một content được phân phối nhiều nơi
+
+Ví dụ một video:
+
+```text
+PTE001
+├── TikTok Account A
+├── TikTok Account B
+├── Instagram A
+└── YouTube A
+```
+
+Thì tách thành:
+
+```text
+contents
+```
+
+và:
+
+```text
+publications
+```
+
+### contents
+
+```text
+id
+code
+title
+caption
+content_type
+status
+created_at
+```
+
+### assets
+
+```text
+id
+content_id
+file
+sort_order
+type
+```
+
+### workers
+
+```text
+id
+name
+code
+email
+active
+```
+
+### publications
+
+```text
+id
+content_id
+worker_id
+platform
+account
+status
+published_url
+published_at
+claimed_at
+```
+
+Model này scalable hơn.
+
+---
+
+# 8. Các solution đã xem xét
+
+## Postiz
+
+Postiz ban đầu được xem là solution gần nhất vì có:
+
+* Self-hosting.
+* Social integrations.
+* Media.
+* Scheduling.
+* Public API.
+* MCP.
+* AI-agent-oriented tooling.
+* TikTok/Instagram/etc publishing.
+
+Postiz phù hợp nếu bài toán là:
+
+```text
+AI
+ ↓
+Postiz
+ ↓
+TikTok / Instagram APIs
+```
+
+Tức là Postiz làm publishing engine.
+
+Nhưng đối với manual-first workflow thì nó hơi khiên cưỡng.
+
+Postiz tập trung vào:
+
+```text
+draft
+schedule
+auto publish
+```
+
+Trong khi tôi cần:
+
+```text
+ready
+human downloads
+human posts
+paste URL
+done
+```
+
+Có thể tận dụng Postiz draft, nhưng sẽ phải custom nhiều thứ như:
+
+* Copy caption.
+* Download all assets.
+* Assign KOL.
+* Claim.
+* Manual published URL.
+* Manual completion status.
+
+Do đó kết luận là:
+
+> Không nên dùng Postiz làm core cho manual workflow.
+
+Nếu sau này cần official API auto-post thì Postiz có thể được dùng như một publishing adapter bên ngoài.
+
+Ví dụ:
+
+```text
+Content System
+       ↓
+Distribution Engine
+       ↓
+ ┌─────┴──────┐
+ ↓            ↓
+Human       Postiz
+             ↓
+         Social API
+```
+
+---
+
+# 9. Những category phù hợp hơn Postiz
+
+Sau khi xác định manual workflow, chúng tôi chuyển hướng research sang:
+
+* Headless CMS.
+* Internal tools.
+* Digital Asset Management.
+* Content approval workflow.
+* Creative asset portal.
+* UGC workflow.
+
+Một số solution đã xem:
+
+* Directus
+* Strapi
+* MediaCMS
+* FreeFrame
+* Phraseanet/Phrasea
+* DAM systems
+
+Trong số đó Directus phù hợp nhất với requirement hiện tại.
+
+---
+
+# 10. Directus là recommendation hiện tại
+
+Directus phù hợp vì bản chất nó cung cấp:
+
+```text
+Database
++
+Admin UI / Studio
++
+REST API
++
+GraphQL API
++
+Authentication
++
+Permissions
++
+File management
++
+Custom data schema
++
+Workflow/automation
+```
+
+Điều này có nghĩa là tôi không cần tự code:
+
+* CRUD.
+* Login.
+* User management.
+* File upload.
+* Admin panel.
+* API layer.
+* Permissions.
+* Filtering.
+* Search.
+* Relationships.
+
+Tôi chỉ cần định nghĩa các collections.
+
+Ví dụ:
+
+```text
+contents
+workers
+publications
+```
+
+Directus tự tạo giao diện và API.
+
+---
+
+# 11. AI integration với Directus
+
+AI có thể gọi Directus REST API trực tiếp.
+
+Ví dụ:
+
+```text
+POST /items/contents
+```
+
+AI có thể gửi:
+
+```json
+{
+  "code": "PTE-RS-001",
+  "title": "Repeat Sentence Tip",
+  "caption": "...",
+  "status": "READY"
+}
+```
+
+Sau đó upload hoặc liên kết media.
+
+Do đó architecture có thể là:
+
+```text
+AI Content Generator
+         ↓
+    Directus API
+         ↓
+      Directus
+         ↓
+ Content database
+```
+
+---
+
+# 12. Directus có frontend sẵn
+
+Một câu hỏi quan trọng là có phải build frontend cho KOL ngay không.
+
+Kết luận:
+
+> Không.
+
+Directus có sẵn Directus Studio.
+
+Khi deploy:
+
+```text
+https://content.example.com
+```
+
+KOL có thể login vào Studio.
+
+Ta tạo role:
+
+```text
+KOL
+```
+
+và giới hạn permissions để KOL chỉ được:
+
+* Xem content được assign cho họ.
+* Xem content `READY`.
+* Xem/download media.
+* Xem caption.
+* Update `published_url`.
+* Update status.
+* Có thể không được delete hoặc sửa các field khác.
+
+Không cần cho họ quyền:
+
+* Settings.
+* Database schema.
+* User management.
+* System configuration.
+
+Directus có role/policy/field-level permissions phù hợp cho việc này.
+
+---
+
+# 13. UI Directus có thể đủ cho Phase 1
+
+Ví dụ KOL login:
+
+```text
+Contents
+
+PTE001    READY
+PTE002    READY
+PTE003    READY
+```
+
+Mở PTE001:
+
+```text
+PTE001
+
+Video:
+[ Preview ]
+
+Caption:
+This is how I practise PTE...
+
+Status:
+READY
+
+Published URL:
+[________________________]
+
+[Save]
+```
+
+KOL download media, copy caption, đăng TikTok, sau đó quay lại paste URL.
+
+Như vậy Phase 1 có thể không cần custom frontend.
+
+---
+
+# 14. Tuy nhiên Studio không phải UX lý tưởng cho KOL
+
+Directus Studio giống CMS/admin interface.
+
+Về lâu dài KOL có thể chỉ cần một màn hình đơn giản:
+
+```text
+NEXT POST
+
+PTE001
+
+[ Video Preview ]
+
+[ Download ]
+
+Caption:
+...
+
+[ Copy Caption ]
+
+Published URL:
+[________________________]
+
+[ Complete ]
+```
+
+Lúc đó build một frontend cực mỏng.
+
+Frontend này không cần backend riêng.
+
+Nó chỉ gọi Directus API.
+
+Ví dụ:
+
+```text
+Frontend
+    ↓
+Directus REST API
+```
+
+Directus vẫn giữ:
+
+* Database.
+* Auth.
+* Files.
+* Permissions.
+* Content.
+* Users.
+
+Như vậy ta chỉ viết phần UX đặc thù.
+
+---
+
+# 15. Database: muốn dùng SQLite
+
+Tôi muốn hệ thống nhỏ và đơn giản nên ưu tiên SQLite.
+
+Directus có hỗ trợ SQLite.
+
+Đối với use case hiện tại:
+
+* Ít KOL.
+* Concurrent users thấp.
+* Content không phải hàng triệu record.
+* Chủ yếu CRUD đơn giản.
+
+thì SQLite đủ tốt cho MVP.
+
+Architecture có thể là:
+
+```text
+VPS
+
+Directus
+database.sqlite
+uploads/
+```
+
+Không cần deploy PostgreSQL ngay.
+
+Ưu điểm:
+
+* Setup nhanh.
+* Ít service.
+* Backup dễ.
+* Database chỉ là một file.
+* Phù hợp với small internal application.
+
+Nếu scale lớn hơn mới cân nhắc PostgreSQL.
+
+---
+
+# 16. Không lưu video/image trong SQLite
+
+SQLite chỉ nên lưu metadata và file reference.
+
+Không nên lưu MP4 hoặc hình lớn dưới dạng database BLOB nếu không cần.
+
+Database lưu kiểu:
+
+```text
+content_id
+caption
+status
+file_id
+published_url
+worker
+```
+
+Media nên nằm ở filesystem hoặc object storage.
+
+---
+
+# 17. Các lựa chọn storage
+
+Đã cân nhắc:
+
+* Local VPS disk.
+* Cloudflare R2.
+* MinIO.
+* AWS S3.
+* SQLite BLOB.
+
+Kết luận:
+
+## Không dùng SQLite BLOB
+
+Không phù hợp cho video/image lớn.
+
+---
+
+## Local VPS disk
+
+Đơn giản nhất cho MVP.
+
+Ví dụ:
+
+```text
+/app
+/data/database.sqlite
+/uploads/
+    PTE001.mp4
+    PTE002.mp4
+```
+
+Nếu VPS còn nhiều disk và content chưa quá lớn thì đây là lựa chọn tốt nhất lúc đầu.
+
+Ví dụ nếu video trung bình khoảng 30 MB:
+
+```text
+500 videos ≈ 15 GB
+```
+
+Một VPS có 40–80 GB disk có thể đủ cho giai đoạn đầu.
+
+Ưu điểm:
+
+* Không setup storage khác.
+* Không credentials S3.
+* Không network dependency khác.
+* Deploy cực kỳ đơn giản.
+
+---
+
+## Cloudflare R2
+
+R2 rất đáng cân nhắc khi video bắt đầu nhiều hoặc muốn tách storage khỏi VPS.
+
+R2 hỗ trợ S3-compatible API.
+
+Directus có S3-compatible storage support nên có thể cấu hình Directus để dùng R2.
+
+Architecture:
+
+```text
+VPS
+├── Directus
+└── SQLite
+     └── metadata
+
+Cloudflare R2
+├── videos/
+└── images/
+```
+
+Directus vẫn quản lý các file qua File Library.
+
+KOL vẫn download thông qua application/storage setup.
+
+Ưu điểm:
+
+* Object storage.
+* Không ăn disk VPS.
+* Dễ scale.
+* Thường có cost tốt cho workload kiểu asset distribution.
+
+---
+
+## MinIO
+
+Có thể self-host MinIO trên VPS để có S3 API.
+
+Nhưng đối với requirement hiện tại thì hơi dư.
+
+Nó thêm:
+
+* Một service khác.
+* Storage management.
+* Backup complexity.
+
+Nếu chỉ có một VPS thì local filesystem đơn giản hơn.
+
+---
+
+# 18. Recommendation deployment cho MVP
+
+Phương án hiện tại được đánh giá là hợp lý nhất:
+
+```text
+Directus
++
+SQLite
++
+Local VPS storage
+```
+
+Architecture:
+
+```text
+                  Internet
+                     │
+                     ↓
+
+          content.example.com
+                     │
+                     ↓
+
+              ┌─────────────┐
+              │  Directus   │
+              │             │
+AI ──────────▶│ REST API    │◀──────── KOL
+              │ Studio      │
+              └──────┬──────┘
+                     │
+                  SQLite
+                     │
+                     ↓
+                 metadata
+
+                     │
+                     ↓
+                VPS uploads
+```
+
+Sau này chỉ cần thay storage:
+
+```text
+VPS uploads
+     ↓
+Cloudflare R2
+```
+
+mà không cần redesign toàn bộ application.
+
+---
+
+# 19. Directus có thể đóng vai trò Control Plane
+
+Một cách nhìn architecture tốt là:
+
+> Directus = Content Control Plane
+
+Tất cả client đều tương tác với nó.
+
+```text
+                     DIRECTUS
+                        │
+               Content Database
+                        │
+        ┌───────────────┼───────────────┐
+        │               │               │
+        ↓               ↓               ↓
+    AI Agent        Human KOL       Auto Worker
+        │               │               │
+       API             Web UI            API
+        │               │               │
+        └───────────────┴───────────────┘
+                        │
+                        ↓
+                  Social Platforms
+```
+
+Điểm này rất quan trọng.
+
+Ta không thiết kế Directus chỉ cho con người.
+
+Ta thiết kế nó thành nguồn sự thật trung tâm cho:
+
+* AI.
+* Humans.
+* Automation.
+* Reporting.
+
+---
+
+# 20. Có thể build từ từ mà không lock architecture
+
+Phase 1:
+
+```text
+AI
+ ↓
+Directus
+ ↓
+Human manual posting
+```
+
+Phase 2:
+
+```text
+AI
+ ↓
+Directus
+ ↓
+Custom KOL frontend
+ ↓
+Human manual posting
+```
+
+Phase 3:
+
+```text
+Directus
+ ↓
+Distribution rules
+ ↓
+Human OR automation
+```
+
+Phase 4:
+
+```text
+Directus
+ ↓
+Auto Worker / Postiz / Official APIs
+```
+
+Do đó lựa chọn Directus không khóa chúng ta vào manual posting.
+
+---
+
+# 21. Những system khác đã research
+
+## Strapi
+
+Strapi cũng có:
+
+* Headless CMS.
+* Content models.
+* APIs.
+* Admin UI.
+* Media.
+* Authentication/plugins.
+
+Có thể dùng Strapi tương tự Directus.
+
+Tuy nhiên Directus phù hợp hơn với project này vì nó giống:
+
+> database-powered internal tool / operational backend
+
+hơn traditional content CMS.
+
+Recommendation:
+
+```text
+Directus > Strapi
+```
+
+cho use case này.
+
+---
+
+## MediaCMS
+
+MediaCMS phù hợp nếu content chủ yếu là video.
+
+Có:
+
+* Video upload.
+* Preview.
+* Media management.
+* REST API.
+* User management.
+* Transcoding.
+
+Nhưng nó không tự nhiên cho:
+
+* Caption workflow.
+* KOL assignment.
+* Claiming.
+* Social URL tracking.
+
+Do đó sẽ cần custom nhiều hơn Directus.
+
+---
+
+## FreeFrame
+
+FreeFrame phù hợp với creative review/approval.
+
+Ví dụ:
+
+```text
+AI creates video
+ ↓
+Human reviews
+ ↓
+Comment at timestamp
+ ↓
+Regenerate
+ ↓
+Approve
+ ↓
+Distribution
+```
+
+Nếu sau này cần production-review workflow thì FreeFrame có thể rất hữu ích.
+
+Nhưng nó không phải distribution queue chính.
+
+---
+
+## Phraseanet/Phrasea và các DAM
+
+Enterprise DAM giải quyết tốt:
+
+* Asset storage.
+* Metadata.
+* Search.
+* Rights.
+* Approval.
+* Collections.
+
+Nhưng use case hiện tại đơn giản hơn.
+
+Tôi cần chủ yếu:
+
+```text
+content
+caption
+media
+status
+worker
+published URL
+```
+
+Nên enterprise DAM là overkill.
+
+---
+
+# 22. Why not build everything from scratch?
+
+MVP nếu tự build hoàn toàn thực chất chỉ gồm:
+
+* CRUD.
+* Auth.
+* User permissions.
+* Upload.
+* File storage.
+* Database.
+* API.
+* Admin UI.
+* Search.
+* Filters.
+* Relationships.
+
+Nhưng đây chính xác là những thứ Directus đã cung cấp.
+
+Nếu tự viết toàn bộ, phần business logic thực tế rất ít nhưng phải build nhiều infrastructure.
+
+Vì vậy mục tiêu là:
+
+> Không code từ đầu nếu có thể tận dụng Directus.
+
+Chỉ custom những gì mang tính đặc thù của workflow.
+
+---
+
+# 23. Những phần có thể cần custom
+
+Có một số feature Directus Studio có thể không làm đúng UX mong muốn.
+
+Ví dụ:
+
+### One-click copy caption
+
+Muốn button:
+
+```text
+[Copy Caption]
+```
+
+Studio có thể không tối ưu cho việc này.
+
+Custom frontend sẽ xử lý rất dễ.
+
+---
+
+### Download all carousel
+
+Ví dụ:
+
+```text
+[Download All Images]
+```
+
+có thể cần custom UI.
+
+---
+
+### Get Next Content
+
+KOL chỉ muốn:
+
+```text
+Give me next available post
+```
+
+thay vì browse table.
+
+Custom frontend có thể gọi:
+
+```text
+GET READY
+sort oldest
+limit 1
+```
+
+rồi claim nó.
+
+---
+
+### Atomic claiming
+
+Phải đảm bảo hai KOL không claim cùng content cùng lúc.
+
+Đây là một vấn đề cần thiết kế kỹ hơn nếu concurrent worker tăng.
+
+Có thể xử lý qua:
+
+* Directus Flow.
+* Custom endpoint.
+* Transaction/custom extension.
+* Dedicated assignment record.
+
+Đây là một trong những điểm cần AI tiếp tục nghiên cứu.
+
+---
+
+# 24. User/KOL flow mong muốn cuối cùng
+
+UX lý tưởng:
+
+```text
+https://content.example.com
+```
+
+KOL login.
+
+Sau login:
+
+```text
+Hello KOL01
+
+3 posts waiting
+
+[GET NEXT POST]
+```
+
+Nhấn:
+
+```text
+PTE-RS-023
+
+TikTok
+
+[ VIDEO PREVIEW ]
+
+Caption
+--------------------------------
+Most people practise Repeat
+Sentence incorrectly...
+--------------------------------
+
+[ COPY CAPTION ]
+
+[ DOWNLOAD VIDEO ]
+
+I have published this:
+
+URL
+[____________________________]
+
+[ COMPLETE ]
+```
+
+Nhấn Complete.
+
+Server ghi:
+
+```text
+content = PTE-RS-023
+worker = KOL01
+platform = TikTok
+url = ...
+published_at = now
+status = PUBLISHED
+```
+
+Sau đó:
+
+```text
+NEXT POST
+```
+
+---
+
+# 25. AI flow mong muốn
+
+AI không cần login Studio.
+
+AI dùng API token.
+
+Ví dụ:
+
+```text
+AI generates:
+- script
+- caption
+- video
+- carousel
+```
+
+Sau đó upload:
+
+```text
+POST file
+POST content
+```
+
+Content có thể ban đầu là:
+
+```text
+DRAFT
+```
+
+Nếu approved:
+
+```text
+READY
+```
+
+Hoặc AI đủ tin cậy thì tạo trực tiếp:
+
+```text
+READY
+```
+
+---
+
+# 26. Có thể thêm campaign
+
+Sau này có thể thêm:
+
+```text
+campaigns
+```
+
+Ví dụ:
+
+```text
+PTE Repeat Sentence
+PTE Read Aloud
+PTE Speaking Tips
+PTE Promotion
+```
+
+Content:
+
+```text
+campaign_id
+```
+
+Worker/account có thể được assign campaign.
+
+Distribution rules ví dụ:
+
+```text
+TikTok01:
+60% educational
+20% product
+20% testimonial
+```
+
+Nhưng đây chưa phải MVP requirement.
+
+---
+
+# 27. Có thể thêm account thay vì chỉ worker
+
+Worker và social account là hai concept khác nhau.
+
+Ví dụ:
+
+```text
+Worker:
+Alice
+```
+
+Alice có thể quản lý:
+
+```text
+TikTok_A
+Instagram_A
+TikTok_B
+```
+
+Do đó lâu dài nên cân nhắc:
+
+```text
+workers
+social_accounts
+publications
+```
+
+Ví dụ publication:
+
+```text
+content_id
+worker_id
+social_account_id
+platform
+status
+url
+```
+
+---
+
+# 28. Có thể thêm analytics sau
+
+MVP chỉ cần URL.
+
+Sau này có thể có worker đọc:
+
+```text
+views
+likes
+comments
+shares
+followers
+conversion
+```
+
+Ví dụ:
+
+```text
+publication_metrics
+```
+
+Nhưng không nên đưa vào MVP nếu chưa cần.
+
+---
+
+# 29. Điều quan trọng khi tiếp tục thiết kế
+
+AI tiếp theo không nên quay lại đề xuất một social scheduler thông thường trừ khi có lý do mạnh.
+
+Hãy giữ requirement cốt lõi:
+
+> Manual-first content distribution.
+
+Không phải:
+
+> Social scheduling system.
+
+Các nguyên tắc:
+
+1. AI có thể push content vào qua API.
+2. Human có thể lấy content cực nhanh.
+3. Media download dễ.
+4. Caption copy dễ.
+5. Claiming tránh duplicate.
+6. Human đăng bằng native social app.
+7. Paste URL trở lại.
+8. Track lịch sử.
+9. Sau này automation worker có thể thay human.
+10. Core system vẫn giữ nguyên.
+
+---
+
+# 30. Current preferred stack
+
+Nếu triển khai ngay, preference hiện tại là:
+
+```text
+Directus
+SQLite
+Docker
+Local VPS storage
+```
+
+Domain:
+
+```text
+content.example.com
+```
+
+Phase 1 dùng:
+
+```text
+Directus Studio
+```
+
+cho KOL.
+
+Sau đó nếu Studio bất tiện thì:
+
+```text
+Custom lightweight frontend
++
+Directus API
+```
+
+Storage khi scale:
+
+```text
+Cloudflare R2
+```
+
+---
+
+# 31. Việc AI tiếp theo nên làm
+
+Hãy tiếp tục từ đây và tập trung vào việc biến architecture trên thành một implementation thật sự đơn giản.
+
+Các câu hỏi tiếp theo cần giải quyết gồm:
+
+1. Thiết kế schema Directus chính xác.
+2. Xác định collections/relations tối thiểu.
+3. Quyết định nên dùng một `contents` table đơn giản hay tách `publications`.
+4. Thiết kế status flow.
+5. Thiết kế claiming để không race condition.
+6. Thiết kế permissions cho KOL.
+7. Xem Directus Studio có thể custom đủ để:
+
+   * Copy caption.
+   * Download media.
+   * Mark complete.
+8. Nếu không thì thiết kế frontend cực nhỏ.
+9. Viết Docker Compose cho:
+
+   * Directus.
+   * SQLite.
+   * Persistent uploads.
+10. Backup SQLite + uploads.
+11. Xác định khi nào nên chuyển media từ VPS sang Cloudflare R2.
+12. Thiết kế API cho AI.
+13. Thiết kế authentication/API token cho AI.
+14. Thiết kế cách KOL login.
+15. Có thể cho KOL login bằng code/name đơn giản hay bắt buộc account/password.
+16. Xác định có cần Directus Flow/custom endpoint cho `claim next`.
+17. Giữ implementation nhỏ nhất có thể.
+
+---
+
+# 32. Guiding principle
+
+Mục tiêu của project không phải xây một platform social media management lớn.
+
+Mục tiêu là:
+
+> Xây một content distribution layer cực kỳ đơn giản giữa AI content generation và con người/automation thực hiện publishing.
+
+Conceptually:
+
+```text
+        CONTENT FACTORY
+
+            AI
+            │
+            ▼
+
+      ┌─────────────┐
+      │   DIRECTUS  │
+      │             │
+      │ Content     │
+      │ Queue       │
+      │ Assets      │
+      │ Assignment  │
+      │ Results     │
+      └──────┬──────┘
+             │
+       ┌─────┴───────┐
+       │             │
+       ▼             ▼
+
+    HUMAN         AUTOMATION
+    WORKER          WORKER
+
+       │             │
+       └─────┬───────┘
+             ▼
+
+     TikTok / Instagram
+      / YouTube / etc.
+
+             │
+             ▼
+
+       Published URL
+             │
+             ▼
+
+          Directus
+```
+
+Đây là architecture hiện tại cần tiếp tục phát triển.

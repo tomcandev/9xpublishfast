@@ -1,0 +1,21 @@
+# secrets / local config
+.env
+.env.*
+!.env.example
+
+# runtime data — database and uploaded media
+data/
+
+# build output
+dist/
+web/dist/
+*.tsbuildinfo
+
+# node
+node_modules/
+
+# OS / editor
+.DS_Store
+*.log
+.vscode/
+.idea/
