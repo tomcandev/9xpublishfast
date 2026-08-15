@@ -164,6 +164,8 @@ export function Post() {
   const videos = content.assets.filter((a) => a.type === 'video')
   const images = content.assets.filter((a) => a.type === 'image')
   const savedCount = content.publications.filter((p) => p.publishedUrl).length
+  const videosTotalSize = videos.reduce((sum, v) => sum + v.size, 0)
+  const imagesTotalSize = images.reduce((sum, img) => sum + img.size, 0)
 
   return (
     <div className="page stack">
@@ -221,14 +223,24 @@ export function Post() {
                 <h2>Download Media</h2>
               </div>
               <div className="stack" style={{ gap: 8 }}>
-                {videos.map((v) => (
-                  <a key={v.id} className="btn btn-primary btn-step-action" href={assetDownloadUrl(v.id)} download>
-                    ⬇ Download Video ({formatBytes(v.size)})
+                {videos.length > 0 && (
+                  <a
+                    className="btn btn-primary btn-step-action"
+                    href={videos.length === 1 ? assetDownloadUrl(videos[0]!.id) : zipUrl(content.id)}
+                    download
+                  >
+                    <span className="btn-step-title">⬇ Download Video</span>
+                    <span className="btn-step-sub">
+                      {videos.length === 1 ? '1 video' : `${videos.length} videos`} • {formatBytes(videosTotalSize)}
+                    </span>
                   </a>
-                ))}
+                )}
                 {images.length > 0 && (
                   <a className="btn btn-primary btn-step-action" href={zipUrl(content.id)} download>
-                    ⬇ Download All Images ({images.length})
+                    <span className="btn-step-title">⬇ Download Images</span>
+                    <span className="btn-step-sub">
+                      {images.length === 1 ? '1 image' : `${images.length} images`} • {formatBytes(imagesTotalSize)}
+                    </span>
                   </a>
                 )}
               </div>
