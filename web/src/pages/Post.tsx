@@ -7,6 +7,7 @@ import {
   assetDownloadUrl,
   assetUrl,
   zipUrl,
+  type Asset,
   type Content,
   type Platform,
 } from '../lib/api'
@@ -162,6 +163,28 @@ export function Post() {
   }
 
   const [activeSlide, setActiveSlide] = useState(0)
+  const [downloading, setDownloading] = useState(false)
+
+  async function handleDownloadAllSeparate(assetsList: Asset[]) {
+    if (!assetsList.length) return
+    setDownloading(true)
+    try {
+      for (let i = 0; i < assetsList.length; i++) {
+        const a = assetsList[i]!
+        const link = document.createElement('a')
+        link.href = assetDownloadUrl(a.id)
+        link.download = a.originalName || `${content?.code || 'media'}_${i + 1}.${a.type === 'video' ? 'mp4' : 'jpg'}`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        if (i < assetsList.length - 1) {
+          await new Promise((r) => setTimeout(r, 450))
+        }
+      }
+    } finally {
+      setTimeout(() => setDownloading(false), 1200)
+    }
+  }
 
   const videos = content.assets.filter((a) => a.type === 'video')
   const images = content.assets.filter((a) => a.type === 'image')
@@ -229,24 +252,57 @@ export function Post() {
               </div>
               <div className="stack" style={{ gap: 8 }}>
                 {videos.length > 0 && (
-                  <a
-                    className="btn btn-primary btn-step-action"
-                    href={videos.length === 1 ? assetDownloadUrl(videos[0]!.id) : zipUrl(content.id)}
-                    download
-                  >
-                    <span className="btn-step-title">⬇ Download Video</span>
-                    <span className="btn-step-sub">
-                      {videos.length === 1 ? '1 video' : `${videos.length} videos`} • {formatBytes(videosTotalSize)}
-                    </span>
-                  </a>
+                  videos.length === 1 ? (
+                    <a
+                      className="btn btn-primary btn-step-action"
+                      href={assetDownloadUrl(videos[0]!.id)}
+                      download
+                    >
+                      <span className="btn-step-title">⬇ Download Video</span>
+                      <span className="btn-step-sub">1 video • {formatBytes(videosTotalSize)}</span>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-step-action"
+                      onClick={() => void handleDownloadAllSeparate(videos)}
+                      disabled={downloading}
+                    >
+                      <span className="btn-step-title">
+                        {downloading ? '⏳ Downloading…' : '⬇ Download All Videos'}
+                      </span>
+                      <span className="btn-step-sub">
+                        {videos.length} separate videos • {formatBytes(videosTotalSize)}
+                      </span>
+                    </button>
+                  )
                 )}
                 {images.length > 0 && (
-                  <a className="btn btn-primary btn-step-action" href={zipUrl(content.id)} download>
-                    <span className="btn-step-title">⬇ Download Images</span>
-                    <span className="btn-step-sub">
-                      {images.length === 1 ? '1 image' : `${images.length} images`} • {formatBytes(imagesTotalSize)}
-                    </span>
-                  </a>
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-step-action"
+                      onClick={() => void handleDownloadAllSeparate(images)}
+                      disabled={downloading}
+                    >
+                      <span className="btn-step-title">
+                        {downloading ? '⏳ Downloading…' : '⬇ Download All Images'}
+                      </span>
+                      <span className="btn-step-sub">
+                        {images.length === 1 ? '1 image' : `${images.length} separate images`} • {formatBytes(imagesTotalSize)}
+                      </span>
+                    </button>
+                    {images.length > 1 && (
+                      <a
+                        className="btn btn-ghost btn-sm"
+                        style={{ alignSelf: 'center', fontSize: '0.8rem', color: 'var(--text-soft)' }}
+                        href={assetDownloadUrl(images[currentSlideIndex]!.id)}
+                        download
+                      >
+                        ⬇ Download Slide {currentSlideIndex + 1} only
+                      </a>
+                    )}
+                  </>
                 )}
               </div>
             </div>
