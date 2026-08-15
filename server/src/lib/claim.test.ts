@@ -16,6 +16,7 @@ import { claimContent, claimNext, releaseContent, releaseStaleClaims } from './c
 
 const userIds: string[] = []
 const contentIds: string[] = []
+let existingReadyIds: string[] = []
 
 function makeUser(username: string) {
   const id = randomUUID()
@@ -51,11 +52,21 @@ function makeContent(status: 'READY' | 'DRAFT' = 'READY', assignedUserId?: strin
   return id
 }
 
-before(() => migrate())
+before(() => {
+  migrate()
+  const rows = db.select({ id: contents.id }).from(contents).where(eq(contents.status, 'READY')).all()
+  existingReadyIds = rows.map((r) => r.id)
+  if (existingReadyIds.length) {
+    db.update(contents).set({ status: 'DRAFT' }).where(inArray(contents.id, existingReadyIds)).run()
+  }
+})
 
 after(() => {
   if (contentIds.length) db.delete(contents).where(inArray(contents.id, contentIds)).run()
   if (userIds.length) db.delete(users).where(inArray(users.id, userIds)).run()
+  if (existingReadyIds.length) {
+    db.update(contents).set({ status: 'READY' }).where(inArray(contents.id, existingReadyIds)).run()
+  }
   sqlite.close()
 })
 

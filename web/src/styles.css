@@ -474,6 +474,83 @@ tbody tr:last-child td { border-bottom: none; }
   padding: 24px;
 }
 
+/* ---------- link rows ---------- */
+.link-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.link-row {
+  display: grid;
+  grid-template-columns: 148px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.link-row-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 580;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.link-row-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.link-row-input {
+  padding-right: 76px;
+  min-height: 42px;
+  font-size: 0.88rem;
+}
+
+.paste-btn {
+  position: absolute;
+  right: 4px;
+  padding: 4px 8px;
+  min-height: 32px;
+  font-size: 0.8rem;
+  font-weight: 550;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-soft);
+  border-radius: 6px;
+}
+.paste-btn:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.save-indicator {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 650;
+}
+.save-indicator.saved {
+  color: var(--accent);
+  font-size: 1.05rem;
+}
+.save-indicator.saving {
+  color: var(--text-faint);
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+@media (max-width: 520px) {
+  .link-row {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+}
+
 @media (max-width: 480px) {
   .page { padding: 18px 15px 56px; }
   .card { padding: 17px; }
