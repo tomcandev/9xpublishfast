@@ -75,6 +75,9 @@ export function Queue() {
                   <div className="stack min0" style={{ gap: 3, flex: 1 }}>
                     <div className="row-tight">
                       <span className="code">{c.code}</span>
+                      <span className="badge" style={{ textTransform: 'capitalize' }}>
+                        {c.contentType}
+                      </span>
                       <StatusBadge status={c.status} />
                     </div>
                     <div className="truncate" style={{ color: 'var(--text-soft)', fontSize: '0.9rem' }}>
@@ -139,6 +142,9 @@ export function Queue() {
                   <div className="stack min0" style={{ gap: 4, flex: 1 }}>
                     <div className="row-tight">
                       <span className="code">{c.code}</span>
+                      <span className="badge" style={{ textTransform: 'capitalize' }}>
+                        {c.contentType}
+                      </span>
                       <span className="hint">{formatDate(c.claimedAt)}</span>
                     </div>
                     <div className="truncate" style={{ color: 'var(--text)', fontSize: '0.92rem', fontWeight: 550 }}>

@@ -202,6 +202,9 @@ export function Post() {
       <div className="stack" style={{ gap: 8 }}>
         <div className="row-tight">
           <span className="code">{content.code}</span>
+          <span className="badge" style={{ textTransform: 'capitalize' }}>
+            {content.contentType}
+          </span>
           <StatusBadge status={content.status} />
         </div>
         {content.title && <h1>{content.title}</h1>}
