@@ -554,7 +554,7 @@ tbody tr:last-child td { border-bottom: none; }
 /* ---------- snackbar / toast ---------- */
 .snackbar-wrap {
   position: fixed;
-  top: 18px;
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 2000;
@@ -564,6 +564,7 @@ tbody tr:last-child td { border-bottom: none; }
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .snackbar {
@@ -586,7 +587,7 @@ tbody tr:last-child td { border-bottom: none; }
 @keyframes snackbar-in {
   from {
     opacity: 0;
-    transform: translateY(-10px) scale(0.96);
+    transform: translateY(12px) scale(0.96);
   }
   to {
     opacity: 1;
