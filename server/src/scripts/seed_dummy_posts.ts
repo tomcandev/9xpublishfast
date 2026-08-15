@@ -2,92 +2,152 @@ import { randomUUID } from 'node:crypto'
 import { db } from '../db/index.js'
 import { assets, contents } from '../db/schema.js'
 
-const dummyPosts = [
+interface DummyAsset {
+  name: string
+  file: string
+  mime: string
+  size: number
+  type: 'video' | 'image'
+}
+
+interface DummyPost {
+  code: string
+  title: string
+  caption: string
+  contentType: 'video' | 'carousel'
+  status: 'READY' | 'CLAIMED' | 'PUBLISHED'
+  assetsList: DummyAsset[]
+}
+
+const sampleVideo: DummyAsset = {
+  name: 'pte_speaking_tips.mp4',
+  file: 'd62b83b5-80b6-42df-bca4-c579c3063f68.mp4',
+  mime: 'video/mp4',
+  size: 2848208,
+  type: 'video',
+}
+
+const sampleImages: DummyAsset[] = [
   {
-    code: 'PTE-RS-002',
-    title: 'Bí kíp bắt nhịp Repeat Sentence đạt 90/90',
-    caption: '3 mẹo ghi nhớ cụm từ cực nhanh trong phần thi Repeat Sentence PTE. Lưu lại để thực hành ngay nhé! 🚀 #pte #repeatsentence #tienganh',
-    contentType: 'video' as const,
-    status: 'READY' as const,
-    assetName: 'sample_video.mp4',
-    assetFile: 'd62b83b5-80b6-42df-bca4-c579c3063f68.mp4',
-    mime: 'video/mp4',
-    size: 2848208,
-    type: 'video' as const,
-  },
-  {
-    code: 'PTE-DI-003',
-    title: 'Template Describe Image ăn trọn điểm Fluency',
-    caption: 'Không cần nói quá nhiều từ vựng phức tạp, chỉ cần áp dụng đúng cấu trúc template này! 🔥 #pte #describeimage #ptelearner',
-    contentType: 'video' as const,
-    status: 'READY' as const,
-    assetName: 'sample_video.mp4',
-    assetFile: 'd62b83b5-80b6-42df-bca4-c579c3063f68.mp4',
-    mime: 'video/mp4',
-    size: 2848208,
-    type: 'video' as const,
-  },
-  {
-    code: 'PTE-WFD-004',
-    title: 'Tổng hợp 50 câu Write From Dictation trúng tủ tháng này',
-    caption: 'Top câu Write From Dictation xuất hiện nhiều nhất trong đề thi tuần qua. Xem ngay slide chi tiết! 📚✨ #pte #writefromdictation',
-    contentType: 'carousel' as const,
-    status: 'READY' as const,
-    assetName: 'carousel_1.jpg',
-    assetFile: '31b3ae47-1036-46dc-abb1-4e34c2c69dc4.jpg',
+    name: 'slide_1_cover.jpg',
+    file: '31b3ae47-1036-46dc-abb1-4e34c2c69dc4.jpg',
     mime: 'image/jpeg',
     size: 51575,
-    type: 'image' as const,
+    type: 'image',
   },
   {
-    code: 'PTE-RA-005',
-    title: 'Cách ngắt nghỉ tự nhiên khi Read Aloud',
-    caption: 'Đừng đọc như robot! Đây là cách giúp phát âm của bạn mượt mà và tự nhiên hơn trong phòng thi. 🎙️ #pte #readaloud #pronunciation',
-    contentType: 'video' as const,
-    status: 'READY' as const,
-    assetName: 'sample_video.mp4',
-    assetFile: 'd62b83b5-80b6-42df-bca4-c579c3063f68.mp4',
-    mime: 'video/mp4',
-    size: 2848208,
-    type: 'video' as const,
-  },
-  {
-    code: 'PTE-SST-006',
-    title: 'Summarize Spoken Text: Bắt Keyword chuẩn xác',
-    caption: 'Chiến thuật take notes nhanh không bị trễ thông tin trong bài nghe SST. Thực hành ngay nào! 🎧📝 #pte #listening',
-    contentType: 'carousel' as const,
-    status: 'READY' as const,
-    assetName: 'carousel_2.jpg',
-    assetFile: '7ec299be-9185-4bb5-b27d-acccc6b63823.jpg',
+    name: 'slide_2_strategy.jpg',
+    file: '7ec299be-9185-4bb5-b27d-acccc6b63823.jpg',
     mime: 'image/jpeg',
     size: 212842,
-    type: 'image' as const,
+    type: 'image',
   },
   {
-    code: 'PTE-FIB-007',
-    title: 'Collocation thần thánh trong Reading Fill in the Blanks',
-    caption: '5 cặp từ đi liền nhau hay gặp nhất trong đề thi Reading PTE. Thuộc lòng để không bị mất điểm oan! 💡 #pte #reading #vocabulary',
-    contentType: 'carousel' as const,
-    status: 'READY' as const,
-    assetName: 'carousel_3.jpg',
-    assetFile: '8447ebde-b4db-4abd-bd4b-87c79f2afe09.jpg',
+    name: 'slide_3_examples.jpg',
+    file: '8447ebde-b4db-4abd-bd4b-87c79f2afe09.jpg',
     mime: 'image/jpeg',
     size: 94344,
-    type: 'image' as const,
+    type: 'image',
   },
   {
-    code: 'PTE-SWT-008',
-    title: 'Viết 1 câu duy nhất cho Summarize Written Text',
-    caption: 'Cách nối mệnh đề chuẩn ngữ pháp mà không bị câu quá dài hoặc sai logic. ✍️ #pte #writing',
-    contentType: 'video' as const,
-    status: 'READY' as const,
-    assetName: 'sample_video.mp4',
-    assetFile: 'd62b83b5-80b6-42df-bca4-c579c3063f68.mp4',
-    mime: 'video/mp4',
-    size: 2848208,
-    type: 'video' as const,
+    name: 'slide_4_summary.jpg',
+    file: '95b7198c-cd8e-4c43-8576-fb3f8620bdd6.jpg',
+    mime: 'image/jpeg',
+    size: 275015,
+    type: 'image',
   },
 ]
+
+const longCaption = `🔥 5 BƯỚC BỨT PHÁ BAND ĐIỂM SPEAKING TRONG 14 NGÀY
+
+Rất nhiều bạn gặp tình trạng bị khựng, mất bình tĩnh hoặc ngắt quãng khi phát âm. Hãy áp dụng ngay quy trình 5 bước sau:
+
+1️⃣ Bước 1: Khởi động thanh quản mỗi sáng 5 phút với bài tập humming và phát âm nguyên âm dài.
+2️⃣ Bước 2: Shadowing theo người bản xứ với tốc độ 0.75x trước khi tăng lên tốc độ chuẩn 1.0x.
+3️⃣ Bước 3: Thu âm lại giọng nói của chính mình để phát hiện các lỗi nuốt âm đuôi (-s, -ed, -t).
+4️⃣ Bước 4: Áp dụng kỹ thuật Chunking - chia câu thành các cụm 3-4 từ có nghĩa thay vì đọc từng từ đơn lẻ.
+5️⃣ Bước 5: Luyện tập dưới áp lực đếm ngược thời gian để não bộ làm quen với phòng thi thực tế.
+
+📌 Lưu ngay video này để áp dụng vào lộ trình luyện tập hàng ngày của bạn nhé!
+
+#pte #ielts #speaking #studygram #englishlearning #learnenglish #ptespeaking #pronunciation #studywithme #ieltspreparation`
+
+const dummyPosts: DummyPost[] = [
+  // Multi-image Carousel (4 slides)
+  {
+    code: 'PTE-CAROUSEL-009',
+    title: 'Trọn bộ 4 slide chiến thuật Re-order Paragraphs chuẩn xác',
+    caption: 'Không còn sợ dạng bài sắp xếp đoạn văn! Vuốt sang để xem 4 bước tìm câu mở đầu và các cặp liên kết logic (linkers, pronouns, chronological order). 📑✨ #pte #reading #reorderparagraphs',
+    contentType: 'carousel',
+    status: 'READY',
+    assetsList: sampleImages,
+  },
+  // Multi-image Carousel (3 slides)
+  {
+    code: 'VOCAB-CAROUSEL-010',
+    title: 'Top 15 cụm từ học thuật C1/C2 nâng tầm Speaking & Writing',
+    caption: 'Thay thế các từ cơ bản (very good, important, bad) bằng các collocations học thuật giúp bài nói mượt mà và tự nhiên hơn. Vuốt xem chi tiết! 💡 #vocabulary #academicenglish #ielts #pte',
+    contentType: 'carousel',
+    status: 'READY',
+    assetsList: [sampleImages[0]!, sampleImages[1]!, sampleImages[2]!],
+  },
+  // Carousel (2 slides)
+  {
+    code: 'PTE-RL-011',
+    title: 'Re-tell Lecture: Cách lấy 10-12 keyword ghi trọn điểm',
+    caption: 'Cách take note dạng xương cá cực nhanh giúp bạn không bỏ sót ý chính của bài giảng dài. 🎙️ #pte #retelllecture #listening',
+    contentType: 'carousel',
+    status: 'READY',
+    assetsList: [sampleImages[0]!, sampleImages[3]!],
+  },
+  // Video with very long scrollable caption
+  {
+    code: 'PTE-LONG-012',
+    title: 'Lộ trình chi tiết 14 ngày bứt phá Speaking 79+',
+    caption: longCaption,
+    contentType: 'video',
+    status: 'READY',
+    assetsList: [sampleVideo],
+  },
+  // Quick tip video
+  {
+    code: 'SHORTS-TIPS-013',
+    title: '1 mẹo xử lý Micro không bắt tiếng trong phòng thi PTE',
+    caption: 'Đặt micro cách khóe môi 2 đốt ngón tay và thổi nhẹ kiểm tra trước khi bấm Start nhé các bạn! 🎧 #ptetips #microphonetest #examtips',
+    contentType: 'video',
+    status: 'READY',
+    assetsList: [sampleVideo],
+  },
+  // Grammar carousel
+  {
+    code: 'GRAMMAR-014',
+    title: 'Phân biệt 3 cấu trúc đảo ngữ hay gặp nhất trong đề thi',
+    caption: 'Not only... but also, Hardly... when, In no way. Xem ngay slide phân tích cấu trúc và ví dụ minh họa! 📖 #grammar #writing #ielts',
+    contentType: 'carousel',
+    status: 'READY',
+    assetsList: sampleImages,
+  },
+  // Daily motivation video
+  {
+    code: 'REELS-MOTIV-015',
+    title: 'Động lực học tập mỗi ngày: Đừng bỏ cuộc khi band chưa tăng',
+    caption: 'Mỗi ngày tích lũy 1 giờ luyện tập, kết quả sẽ đến sớm hơn bạn nghĩ. Cố lên nhé! 💪✨ #motivation #studyhard #englishjourney',
+    contentType: 'video',
+    status: 'READY',
+    assetsList: [sampleVideo],
+  },
+  // Answer short question video
+  {
+    code: 'PTE-ASQ-016',
+    title: '100 câu Answer Short Question phản xạ 1 giây',
+    caption: 'Phản xạ nhanh như chớp với bộ 100 câu hỏi ngắn thường gặp nhất tuần này. ⚡ #pte #asq #quickquiz',
+    contentType: 'video',
+    status: 'READY',
+    assetsList: [sampleVideo],
+  },
+]
+
+let createdCount = 0
 
 for (const post of dummyPosts) {
   const contentId = randomUUID()
@@ -105,23 +165,28 @@ for (const post of dummyPosts) {
 
   try {
     db.insert(contents).values(contentRow).run()
-    db.insert(assets)
-      .values({
-        id: randomUUID(),
-        contentId,
-        filePath: post.assetFile,
-        originalName: post.assetName,
-        mime: post.mime,
-        size: post.size,
-        sortOrder: 0,
-        type: post.type,
-      })
-      .run()
-    console.log(`✓ Created ready post: ${post.code} - ${post.title}`)
+
+    let sort = 0
+    for (const asset of post.assetsList) {
+      db.insert(assets)
+        .values({
+          id: randomUUID(),
+          contentId,
+          filePath: asset.file,
+          originalName: asset.name,
+          mime: asset.mime,
+          size: asset.size,
+          sortOrder: sort++,
+          type: asset.type,
+        })
+        .run()
+    }
+    createdCount++
+    console.log(`✓ Created post [${post.contentType.toUpperCase()}]: ${post.code} (${post.assetsList.length} assets) - ${post.title}`)
   } catch (err: any) {
     console.log(`- Post ${post.code} already exists or error: ${err.message}`)
   }
 }
 
-console.log('\nDummy posts created successfully!')
+console.log(`\nSuccessfully seeded ${createdCount} new diverse dummy posts!`)
 process.exit(0)
