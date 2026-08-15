@@ -115,15 +115,15 @@ export async function contentRoutes(app: FastifyInstance) {
       .get()
 
     // 404 rather than 403 so a KOL can't probe which ids exist.
-    if (!row) return reply.code(404).send({ error: 'Không tìm thấy bài này' })
+    if (!row) return reply.code(404).send({ error: 'Post not found' })
     return { content: hydrate([row])[0] }
   })
 
-  /** Claim the next available item — the "Lấy bài tiếp theo" button. */
+  /** Claim the next available item — the "Claim next post" button. */
   app.post('/api/contents/claim-next', async (req, reply) => {
     const result = claimNext(req.user!.id)
     if (!result.ok) {
-      return reply.code(404).send({ error: 'Hiện chưa có bài nào sẵn sàng', reason: result.reason })
+      return reply.code(404).send({ error: 'No posts are currently ready', reason: result.reason })
     }
     return { content: hydrate([result.content])[0] }
   })
@@ -134,7 +134,7 @@ export async function contentRoutes(app: FastifyInstance) {
     if (!result.ok) {
       const code = result.reason === 'not_found' ? 404 : 409
       const error =
-        result.reason === 'not_found' ? 'Không tìm thấy bài này' : 'Bài này vừa có người khác nhận'
+        result.reason === 'not_found' ? 'Post not found' : 'This post was just claimed by someone else'
       return reply.code(code).send({ error, reason: result.reason })
     }
     return { content: hydrate([result.content])[0] }
@@ -144,7 +144,7 @@ export async function contentRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string }
     const user = req.user!
     const ok = releaseContent(id, user.id, user.role === 'admin')
-    if (!ok) return reply.code(409).send({ error: 'Không thể trả lại bài này' })
+    if (!ok) return reply.code(409).send({ error: 'Cannot return this post' })
     return { ok: true }
   })
 
@@ -160,7 +160,7 @@ export async function contentRoutes(app: FastifyInstance) {
     )
 
     const existing = db.select().from(contents).where(owned).get()
-    if (!existing) return reply.code(409).send({ error: 'Bài này không ở trạng thái đang nhận' })
+    if (!existing) return reply.code(409).send({ error: 'This post is not in claimed status' })
 
     const pubCount = db
       .select({ n: sql<number>`count(*)` })
@@ -169,7 +169,7 @@ export async function contentRoutes(app: FastifyInstance) {
       .get()
 
     if (!pubCount?.n) {
-      return reply.code(400).send({ error: 'Cần ít nhất một link đã đăng trước khi hoàn thành' })
+      return reply.code(400).send({ error: 'At least one published link is required before completing' })
     }
 
     db.update(contents).set({ status: 'PUBLISHED' }).where(eq(contents.id, id)).run()

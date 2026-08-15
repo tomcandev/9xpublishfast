@@ -27,11 +27,11 @@ export async function ingestRoutes(app: FastifyInstance) {
   app.post('/api/ingest/contents', async (req, reply) => {
     const parsed = createSchema.safeParse(req.body)
     if (!parsed.success) {
-      return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? 'Dữ liệu không hợp lệ' })
+      return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? 'Invalid input' })
     }
 
     const existing = db.select().from(contents).where(eq(contents.code, parsed.data.code)).get()
-    if (existing) return reply.code(409).send({ error: `Code "${parsed.data.code}" đã tồn tại` })
+    if (existing) return reply.code(409).send({ error: `Code "${parsed.data.code}" already exists` })
 
     const id = randomUUID()
     db.insert(contents)
@@ -44,10 +44,10 @@ export async function ingestRoutes(app: FastifyInstance) {
   app.patch('/api/ingest/contents/:id', async (req, reply) => {
     const { id } = req.params as { id: string }
     const parsed = createSchema.partial().safeParse(req.body)
-    if (!parsed.success) return reply.code(400).send({ error: 'Dữ liệu không hợp lệ' })
+    if (!parsed.success) return reply.code(400).send({ error: 'Invalid input' })
 
     const existing = db.select().from(contents).where(eq(contents.id, id)).get()
-    if (!existing) return reply.code(404).send({ error: 'Không tìm thấy' })
+    if (!existing) return reply.code(404).send({ error: 'Not found' })
 
     db.update(contents).set(parsed.data).where(eq(contents.id, id)).run()
     return { content: db.select().from(contents).where(eq(contents.id, id)).get() }
@@ -60,10 +60,10 @@ export async function ingestRoutes(app: FastifyInstance) {
   app.post('/api/ingest/contents/:id/assets', async (req, reply) => {
     const { id } = req.params as { id: string }
     const content = db.select().from(contents).where(eq(contents.id, id)).get()
-    if (!content) return reply.code(404).send({ error: 'Không tìm thấy bài này' })
+    if (!content) return reply.code(404).send({ error: 'Post not found' })
 
     if (!req.isMultipart()) {
-      return reply.code(400).send({ error: 'Cần gửi dạng multipart/form-data' })
+      return reply.code(400).send({ error: 'Content-Type must be multipart/form-data' })
     }
 
     const nextOrder =
@@ -85,7 +85,7 @@ export async function ingestRoutes(app: FastifyInstance) {
 
         await pipeline(part.file, createWriteStream(abs))
         if (part.file.truncated) {
-          throw Object.assign(new Error('File vượt quá dung lượng cho phép'), { statusCode: 413 })
+          throw Object.assign(new Error('File size exceeds allowed limit'), { statusCode: 413 })
         }
         writtenPaths.push(abs)
 
@@ -113,7 +113,7 @@ export async function ingestRoutes(app: FastifyInstance) {
       return reply.code(status).send({ error: (err as Error).message })
     }
 
-    if (created.length === 0) return reply.code(400).send({ error: 'Không có file nào được gửi lên' })
+    if (created.length === 0) return reply.code(400).send({ error: 'No files were uploaded' })
 
     return reply.code(201).send({
       assets: db

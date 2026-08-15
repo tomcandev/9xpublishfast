@@ -14,7 +14,7 @@ Self-contained. SQLite. No external services. `npm install && npm run dev`
 
 ## What it is
 
-AI pipelines or creators generate short-form videos and carousels, then push them into PublishFast. A KOL opens the web app, taps **Lấy bài tiếp theo**, claims one unique post, downloads the media, copies the caption with one click, posts natively on TikTok, Instagram, YouTube Shorts, or Facebook, pastes the verified links back, and marks the task complete.
+AI pipelines or creators generate short-form videos and carousels, then push them into PublishFast. A KOL opens the web app, taps **Claim next post**, claims one unique post, downloads the media, copies the caption with one click, posts natively on TikTok, Instagram, YouTube Shorts, or Facebook, pastes the verified links back, and marks the task complete.
 
 ```
 AI generator ──▶ PublishFast queue ──▶ KOL claims one item

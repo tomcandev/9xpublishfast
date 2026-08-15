@@ -19,7 +19,7 @@ export function Queue() {
       setStats(s)
       setMine(list.contents.filter((c) => c.claimedBy === user?.id))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không tải được dữ liệu')
+      setError(err instanceof Error ? err.message : 'Failed to load data')
     } finally {
       setLoading(false)
     }
@@ -38,10 +38,10 @@ export function Queue() {
     } catch (err) {
       setError(
         err instanceof ApiError && err.reason === 'empty_queue'
-          ? 'Hiện chưa có bài nào sẵn sàng. Quay lại sau nhé.'
+          ? 'No posts ready right now. Check back later.'
           : err instanceof Error
             ? err.message
-            : 'Không nhận được bài',
+            : 'Failed to claim post',
       )
       void load()
     } finally {
@@ -54,11 +54,11 @@ export function Queue() {
   return (
     <div className="page stack">
       <div className="stack" style={{ gap: 4 }}>
-        <h1>Xin chào {user?.displayName} 👋</h1>
+        <h1>Welcome, {user?.displayName} 👋</h1>
         <p className="hint">
           {stats?.available
-            ? `Có ${stats.available} bài đang chờ bạn.`
-            : 'Chưa có bài mới nào trong hàng đợi.'}
+            ? `${stats.available} post${stats.available === 1 ? '' : 's'} waiting in queue.`
+            : 'No new posts waiting in queue.'}
         </p>
       </div>
 
@@ -67,15 +67,15 @@ export function Queue() {
       <div className="stats">
         <div className="stat">
           <div className="stat-value">{stats?.available ?? 0}</div>
-          <div className="stat-label">Đang chờ</div>
+          <div className="stat-label">Waiting</div>
         </div>
         <div className="stat">
           <div className="stat-value">{stats?.claimed ?? 0}</div>
-          <div className="stat-label">Bạn đang làm</div>
+          <div className="stat-label">In Progress</div>
         </div>
         <div className="stat">
           <div className="stat-value">{stats?.published ?? 0}</div>
-          <div className="stat-label">Đã đăng</div>
+          <div className="stat-label">Published</div>
         </div>
       </div>
 
@@ -84,13 +84,13 @@ export function Queue() {
         onClick={claimNext}
         disabled={claiming || !stats?.available}
       >
-        {claiming ? 'Đang lấy bài…' : 'Lấy bài tiếp theo'}
+        {claiming ? 'Claiming post…' : 'Claim next post'}
       </button>
 
       <div className="stack" style={{ gap: 10 }}>
-        <h2>Bài bạn đang làm</h2>
+        <h2>Your active posts</h2>
         {mine.length === 0 ? (
-          <Empty>Chưa nhận bài nào. Bấm “Lấy bài tiếp theo” để bắt đầu.</Empty>
+          <Empty>No active posts. Tap “Claim next post” to begin.</Empty>
         ) : (
           <div className="list">
             {mine.map((c) => (
@@ -101,7 +101,7 @@ export function Queue() {
                     <StatusBadge status={c.status} />
                   </div>
                   <div className="truncate" style={{ color: 'var(--text-soft)', fontSize: '0.9rem' }}>
-                    {c.title || c.caption || 'Không có tiêu đề'}
+                    {c.title || c.caption || 'Untitled'}
                   </div>
                 </div>
                 <span style={{ color: 'var(--text-faint)' }}>›</span>

@@ -12,21 +12,21 @@ import { requireUser } from '../lib/guards.js'
 
 const loginSchema = z.object({
   // Accepts a username ("yoga") or an email — see findUserByIdentifier.
-  identifier: z.string().min(1, 'Nhập username hoặc email'),
-  password: z.string().min(1, 'Nhập mật khẩu'),
+  identifier: z.string().min(1, 'Username or email is required'),
+  password: z.string().min(1, 'Password is required'),
 })
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/api/auth/login', async (req, reply) => {
     const parsed = loginSchema.safeParse(req.body)
     if (!parsed.success) {
-      return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? 'Dữ liệu không hợp lệ' })
+      return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? 'Invalid input' })
     }
 
     const user = findUserByIdentifier(parsed.data.identifier)
     // Same message whether the account is missing or the password is wrong, so
     // the response can't be used to enumerate accounts.
-    const invalid = { error: 'Sai thông tin đăng nhập' }
+    const invalid = { error: 'Invalid username or password' }
     if (!user || !user.active) return reply.code(401).send(invalid)
 
     const ok = await verifyPassword(user.passwordHash, parsed.data.password)

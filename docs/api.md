@@ -3,7 +3,7 @@
 Two ways to authenticate:
 
 - **Session cookie** — humans, via `POST /api/auth/login`. The cookie is httpOnly and SameSite=Lax.
-- **Bearer token** — machines (the AI pipeline). Create one in Quản trị → API token, or with `PF_CREATE_TOKEN=name npm run seed`.
+- **Bearer token** — machines (the AI pipeline). Create one in Admin → API Tokens, or with `PF_CREATE_TOKEN=name npm run seed`.
 
 ```
 Authorization: Bearer pf_xxxxxxxxxxxxxxxx
@@ -45,7 +45,7 @@ Items the caller is allowed to see — already scoped, no client-side filtering 
 Returns the item with its `assets` and `publications`. `404` if the caller may not see it.
 
 ### `POST /api/contents/claim-next`
-Atomically claims the oldest available item — the "Lấy bài tiếp theo" button.
+Atomically claims the oldest available item — the "Claim next post" button.
 `404` with `reason: "empty_queue"` when nothing is available.
 
 ### `POST /api/contents/:id/claim`

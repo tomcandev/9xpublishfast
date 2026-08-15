@@ -16,7 +16,7 @@ export function Login() {
     try {
       await signIn(identifier, password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đăng nhập thất bại')
+      setError(err instanceof Error ? err.message : 'Sign in failed')
       setBusy(false)
     }
   }
@@ -35,15 +35,15 @@ export function Login() {
 
         <form className="card card-pad-lg stack" onSubmit={onSubmit}>
           <div className="stack" style={{ gap: 4 }}>
-            <h1 style={{ fontSize: '1.25rem' }}>Đăng nhập</h1>
-            <p className="hint">Dùng username hoặc email đều được.</p>
+            <h1 style={{ fontSize: '1.25rem' }}>Sign In</h1>
+            <p className="hint">Use your username or email.</p>
           </div>
 
           {error && <Alert>{error}</Alert>}
 
           <div className="field">
             <label className="label" htmlFor="identifier">
-              Username hoặc email
+              Username or email
             </label>
             <input
               id="identifier"
@@ -62,7 +62,7 @@ export function Login() {
 
           <div className="field">
             <label className="label" htmlFor="password">
-              Mật khẩu
+              Password
             </label>
             <input
               id="password"
@@ -76,7 +76,7 @@ export function Login() {
           </div>
 
           <button className="btn btn-primary btn-block" disabled={busy}>
-            {busy ? 'Đang vào…' : 'Đăng nhập'}
+            {busy ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
       </div>

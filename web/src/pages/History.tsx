@@ -12,7 +12,7 @@ export function History() {
     api
       .history()
       .then(({ contents }) => setItems(contents))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Không tải được lịch sử'))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load history'))
       .finally(() => setLoading(false))
   }, [])
 
@@ -20,11 +20,11 @@ export function History() {
 
   return (
     <div className="page stack">
-      <h1>Lịch sử đăng</h1>
+      <h1>Publishing History</h1>
       {error && <Alert>{error}</Alert>}
 
       {items.length === 0 ? (
-        <Empty>Bạn chưa hoàn thành bài nào.</Empty>
+        <Empty>You have not published any posts yet.</Empty>
       ) : (
         <div className="list">
           {items.map((c) => (
@@ -53,7 +53,7 @@ export function History() {
                 </div>
               </div>
               <Link to={`/post/${c.id}`} className="btn btn-sm">
-                Xem
+                View
               </Link>
             </div>
           ))}

@@ -26,12 +26,12 @@ export function App() {
 
           <nav className="nav">
             <NavLink to="/" end>
-              Hàng đợi
+              Queue
             </NavLink>
-            <NavLink to="/history">Lịch sử</NavLink>
-            {user.role === 'admin' && <NavLink to="/admin">Quản trị</NavLink>}
+            <NavLink to="/history">History</NavLink>
+            {user.role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
             <button className="btn btn-ghost btn-sm" onClick={() => void signOut()}>
-              Thoát
+              Sign out
             </button>
           </nav>
         </div>

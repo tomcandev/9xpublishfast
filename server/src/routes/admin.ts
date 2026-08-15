@@ -10,7 +10,7 @@ import { requireAdmin } from '../lib/guards.js'
 const userSchema = z.object({
   username: z.string().min(2).max(31),
   email: z.string().email().optional().or(z.literal('')),
-  password: z.string().min(8, 'Mật khẩu tối thiểu 8 ký tự'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   displayName: z.string().max(120).optional(),
   role: z.enum(ROLES).default('kol'),
 })
@@ -27,7 +27,7 @@ export async function adminRoutes(app: FastifyInstance) {
   app.post('/api/admin/users', async (req, reply) => {
     const parsed = userSchema.safeParse(req.body)
     if (!parsed.success) {
-      return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? 'Dữ liệu không hợp lệ' })
+      return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? 'Invalid input' })
     }
     try {
       const user = await createUser({ ...parsed.data, email: parsed.data.email || null })
@@ -35,7 +35,7 @@ export async function adminRoutes(app: FastifyInstance) {
     } catch (err) {
       const message = (err as Error).message
       const conflict = message.includes('UNIQUE')
-        ? 'Username hoặc email đã tồn tại'
+        ? 'Username or email already exists'
         : message
       return reply.code(400).send({ error: conflict })
     }
@@ -51,10 +51,10 @@ export async function adminRoutes(app: FastifyInstance) {
         password: z.string().min(8).optional(),
       })
       .safeParse(req.body)
-    if (!body.success) return reply.code(400).send({ error: 'Dữ liệu không hợp lệ' })
+    if (!body.success) return reply.code(400).send({ error: 'Invalid input' })
 
     const existing = db.select().from(users).where(eq(users.id, id)).get()
-    if (!existing) return reply.code(404).send({ error: 'Không tìm thấy' })
+    if (!existing) return reply.code(404).send({ error: 'Not found' })
 
     const { password, ...rest } = body.data
     const patch: Record<string, unknown> = { ...rest }
@@ -80,10 +80,10 @@ export async function adminRoutes(app: FastifyInstance) {
         assignedUserId: z.string().nullable().optional(),
       })
       .safeParse(req.body)
-    if (!body.success) return reply.code(400).send({ error: 'Dữ liệu không hợp lệ' })
+    if (!body.success) return reply.code(400).send({ error: 'Invalid input' })
 
     const existing = db.select().from(contents).where(eq(contents.id, id)).get()
-    if (!existing) return reply.code(404).send({ error: 'Không tìm thấy' })
+    if (!existing) return reply.code(404).send({ error: 'Not found' })
 
     db.update(contents).set(body.data).where(eq(contents.id, id)).run()
     return { content: db.select().from(contents).where(eq(contents.id, id)).get() }
@@ -93,14 +93,14 @@ export async function adminRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string }
     // assets and publications cascade via foreign keys
     const result = db.delete(contents).where(eq(contents.id, id)).run()
-    if (result.changes === 0) return reply.code(404).send({ error: 'Không tìm thấy' })
+    if (result.changes === 0) return reply.code(404).send({ error: 'Not found' })
     return { ok: true }
   })
 
   app.delete('/api/admin/assets/:id', async (req, reply) => {
     const { id } = req.params as { id: string }
     const result = db.delete(assets).where(eq(assets.id, id)).run()
-    if (result.changes === 0) return reply.code(404).send({ error: 'Không tìm thấy' })
+    if (result.changes === 0) return reply.code(404).send({ error: 'Not found' })
     return { ok: true }
   })
 
@@ -130,7 +130,7 @@ export async function adminRoutes(app: FastifyInstance) {
     const body = z
       .object({ name: z.string().min(1).max(120), role: z.enum(ROLES).default('admin') })
       .safeParse(req.body)
-    if (!body.success) return reply.code(400).send({ error: 'Cần đặt tên cho token' })
+    if (!body.success) return reply.code(400).send({ error: 'Token name is required' })
 
     const token = createApiToken(body.data.name, body.data.role)
     // Shown once — only the hash is stored.
@@ -140,7 +140,7 @@ export async function adminRoutes(app: FastifyInstance) {
   app.delete('/api/admin/tokens/:id', async (req, reply) => {
     const { id } = req.params as { id: string }
     const result = db.delete(apiTokens).where(eq(apiTokens.id, id)).run()
-    if (result.changes === 0) return reply.code(404).send({ error: 'Không tìm thấy' })
+    if (result.changes === 0) return reply.code(404).send({ error: 'Not found' })
     return { ok: true }
   })
 

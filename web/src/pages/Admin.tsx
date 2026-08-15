@@ -9,13 +9,13 @@ export function Admin() {
   const [tab, setTab] = useState<Tab>('contents')
   return (
     <div className="page page-wide stack">
-      <h1>Quản trị</h1>
+      <h1>Admin</h1>
       <div className="nav" role="tablist">
         {(
           [
-            ['contents', 'Nội dung'],
-            ['users', 'Tài khoản'],
-            ['tokens', 'API token'],
+            ['contents', 'Content'],
+            ['users', 'Users'],
+            ['tokens', 'API Tokens'],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -56,7 +56,7 @@ function ContentsTab() {
       const { contents } = await api.admin.contents()
       setItems(contents)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không tải được')
+      setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
       setLoading(false)
     }
@@ -85,12 +85,12 @@ function ContentsTab() {
         await api.admin.uploadAssets(content.id, files)
       }
 
-      setNotice(`Đã tạo ${content.code}. Chuyển sang “Sẵn sàng” để KOL nhận được.`)
+      setNotice(`Created ${content.code}. Set status to “Ready” for KOLs to claim.`)
       setForm({ code: '', title: '', caption: '', contentType: 'video' })
       if (fileRef.current) fileRef.current.value = ''
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Tạo thất bại')
+      setError(err instanceof Error ? err.message : 'Creation failed')
     } finally {
       setCreating(false)
     }
@@ -101,17 +101,17 @@ function ContentsTab() {
       await api.admin.updateContent(id, { status })
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Cập nhật thất bại')
+      setError(err instanceof Error ? err.message : 'Update failed')
     }
   }
 
   async function remove(id: string, code: string) {
-    if (!confirm(`Xoá "${code}"? Toàn bộ file và link đã lưu sẽ mất.`)) return
+    if (!confirm(`Delete "${code}"? All attached media and links will be permanently removed.`)) return
     try {
       await api.admin.deleteContent(id)
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Xoá thất bại')
+      setError(err instanceof Error ? err.message : 'Deletion failed')
     }
   }
 
@@ -123,7 +123,7 @@ function ContentsTab() {
       {notice && <Alert kind="ok">{notice}</Alert>}
 
       <form className="card stack" onSubmit={create}>
-        <h2>Thêm nội dung</h2>
+        <h2>Add Content</h2>
         <div className="row" style={{ gap: 12 }}>
           <div className="field" style={{ flex: '1 1 180px' }}>
             <label className="label" htmlFor="code">Code *</label>
@@ -137,7 +137,7 @@ function ContentsTab() {
             />
           </div>
           <div className="field" style={{ flex: '2 1 240px' }}>
-            <label className="label" htmlFor="title">Tiêu đề</label>
+            <label className="label" htmlFor="title">Title</label>
             <input
               id="title"
               className="input"
@@ -146,7 +146,7 @@ function ContentsTab() {
             />
           </div>
           <div className="field" style={{ flex: '0 1 150px' }}>
-            <label className="label" htmlFor="ctype">Loại</label>
+            <label className="label" htmlFor="ctype">Type</label>
             <select
               id="ctype"
               className="select"
@@ -170,13 +170,13 @@ function ContentsTab() {
         </div>
 
         <div className="field">
-          <label className="label" htmlFor="files">Video / ảnh</label>
+          <label className="label" htmlFor="files">Video / Images</label>
           <input id="files" ref={fileRef} className="input" type="file" multiple accept="video/*,image/*" />
-          <span className="hint">Chọn nhiều ảnh cho carousel — thứ tự theo lúc chọn.</span>
+          <span className="hint">Select multiple images for carousels — order follows selection.</span>
         </div>
 
         <button className="btn btn-primary" disabled={creating}>
-          {creating ? 'Đang tạo…' : 'Tạo nội dung'}
+          {creating ? 'Creating…' : 'Create Content'}
         </button>
       </form>
 
@@ -185,9 +185,9 @@ function ContentsTab() {
           <thead>
             <tr>
               <th>Code</th>
-              <th>Tiêu đề</th>
-              <th>Trạng thái</th>
-              <th>Tạo lúc</th>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Created</th>
               <th />
             </tr>
           </thead>
@@ -204,16 +204,16 @@ function ContentsTab() {
                   <div className="row-tight">
                     {c.status === 'DRAFT' && (
                       <button className="btn btn-sm btn-primary" onClick={() => setStatus(c.id, 'READY')}>
-                        Sẵn sàng
+                        Ready
                       </button>
                     )}
                     {c.status === 'READY' && (
                       <button className="btn btn-sm" onClick={() => setStatus(c.id, 'DRAFT')}>
-                        Về nháp
+                        Draft
                       </button>
                     )}
                     <button className="btn btn-sm btn-danger" onClick={() => remove(c.id, c.code)}>
-                      Xoá
+                      Delete
                     </button>
                   </div>
                 </td>
@@ -222,7 +222,7 @@ function ContentsTab() {
             {items.length === 0 && (
               <tr>
                 <td colSpan={5} className="hint" style={{ textAlign: 'center', padding: 28 }}>
-                  Chưa có nội dung nào.
+                  No content items found.
                 </td>
               </tr>
             )}
@@ -248,7 +248,7 @@ function UsersTab() {
       const { users } = await api.admin.users()
       setUsers(users)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không tải được')
+      setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
       setLoading(false)
     }
@@ -271,11 +271,11 @@ function UsersTab() {
         displayName: form.displayName.trim() || undefined,
         role: form.role,
       })
-      setNotice(`Đã tạo tài khoản "${form.username}".`)
+      setNotice(`Created account "${form.username}".`)
       setForm({ username: '', password: '', email: '', displayName: '', role: 'kol' })
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Tạo thất bại')
+      setError(err instanceof Error ? err.message : 'Creation failed')
     } finally {
       setBusy(false)
     }
@@ -286,7 +286,7 @@ function UsersTab() {
       await api.admin.updateUser(u.id, { active: !u.active })
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Cập nhật thất bại')
+      setError(err instanceof Error ? err.message : 'Update failed')
     }
   }
 
@@ -298,7 +298,7 @@ function UsersTab() {
       {notice && <Alert kind="ok">{notice}</Alert>}
 
       <form className="card stack" onSubmit={create}>
-        <h2>Thêm tài khoản</h2>
+        <h2>Add User</h2>
         <div className="row" style={{ gap: 12 }}>
           <div className="field" style={{ flex: '1 1 150px' }}>
             <label className="label" htmlFor="u-name">Username *</label>
@@ -311,22 +311,22 @@ function UsersTab() {
               autoCapitalize="none"
               required
             />
-            <span className="hint">Chữ thường, không dấu @</span>
+            <span className="hint">Lowercase, no @ symbol</span>
           </div>
           <div className="field" style={{ flex: '1 1 150px' }}>
-            <label className="label" htmlFor="u-pass">Mật khẩu *</label>
+            <label className="label" htmlFor="u-pass">Password *</label>
             <input
               id="u-pass"
               className="input"
               type="text"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              placeholder="tối thiểu 8 ký tự"
+              placeholder="at least 8 characters"
               required
             />
           </div>
           <div className="field" style={{ flex: '1 1 180px' }}>
-            <label className="label" htmlFor="u-email">Email (tuỳ chọn)</label>
+            <label className="label" htmlFor="u-email">Email (optional)</label>
             <input
               id="u-email"
               className="input"
@@ -336,7 +336,7 @@ function UsersTab() {
             />
           </div>
           <div className="field" style={{ flex: '0 1 130px' }}>
-            <label className="label" htmlFor="u-role">Vai trò</label>
+            <label className="label" htmlFor="u-role">Role</label>
             <select
               id="u-role"
               className="select"
@@ -349,7 +349,7 @@ function UsersTab() {
           </div>
         </div>
         <button className="btn btn-primary" disabled={busy}>
-          {busy ? 'Đang tạo…' : 'Tạo tài khoản'}
+          {busy ? 'Creating…' : 'Create User'}
         </button>
       </form>
 
@@ -358,10 +358,10 @@ function UsersTab() {
           <thead>
             <tr>
               <th>Username</th>
-              <th>Tên</th>
+              <th>Name</th>
               <th>Email</th>
-              <th>Vai trò</th>
-              <th>Trạng thái</th>
+              <th>Role</th>
+              <th>Status</th>
               <th />
             </tr>
           </thead>
@@ -374,12 +374,12 @@ function UsersTab() {
                 <td><span className="badge">{u.role}</span></td>
                 <td>
                   <span className={`badge ${u.active ? 'badge-ready' : ''}`}>
-                    {u.active ? 'Hoạt động' : 'Đã khoá'}
+                    {u.active ? 'Active' : 'Disabled'}
                   </span>
                 </td>
                 <td>
                   <button className="btn btn-sm" onClick={() => toggleActive(u)}>
-                    {u.active ? 'Khoá' : 'Mở'}
+                    {u.active ? 'Disable' : 'Enable'}
                   </button>
                 </td>
               </tr>
@@ -405,7 +405,7 @@ function TokensTab() {
       const { tokens } = await api.admin.tokens()
       setTokens(tokens)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không tải được')
+      setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
       setLoading(false)
     }
@@ -424,12 +424,12 @@ function TokensTab() {
       setName('')
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Tạo token thất bại')
+      setError(err instanceof Error ? err.message : 'Failed to create token')
     }
   }
 
   async function remove(id: string) {
-    if (!confirm('Thu hồi token này?')) return
+    if (!confirm('Revoke this token?')) return
     await api.admin.deleteToken(id).catch(() => {})
     await load()
   }
@@ -443,15 +443,15 @@ function TokensTab() {
       {fresh && (
         <Alert kind="warn">
           <div className="stack" style={{ gap: 6 }}>
-            <strong>Token chỉ hiện một lần — lưu lại ngay:</strong>
+            <strong>Token is displayed once — save it now:</strong>
             <code className="code" style={{ wordBreak: 'break-all', display: 'block', padding: 8 }}>{fresh}</code>
           </div>
         </Alert>
       )}
 
       <form className="card stack" onSubmit={create}>
-        <h2>Tạo API token</h2>
-        <p className="hint">Dùng cho pipeline AI đẩy content vào hệ thống.</p>
+        <h2>Generate API Token</h2>
+        <p className="hint">Used by AI ingestion pipelines to push content into the queue.</p>
         <div className="row-tight">
           <input
             className="input"
@@ -460,7 +460,7 @@ function TokensTab() {
             placeholder="ai-pipeline"
             required
           />
-          <button className="btn btn-primary">Tạo</button>
+          <button className="btn btn-primary">Generate</button>
         </div>
       </form>
 
@@ -468,9 +468,9 @@ function TokensTab() {
         <table>
           <thead>
             <tr>
-              <th>Tên</th>
-              <th>Tạo lúc</th>
-              <th>Dùng lần cuối</th>
+              <th>Name</th>
+              <th>Created</th>
+              <th>Last Used</th>
               <th />
             </tr>
           </thead>
@@ -482,7 +482,7 @@ function TokensTab() {
                 <td className="hint">{formatDate(t.lastUsedAt)}</td>
                 <td>
                   <button className="btn btn-sm btn-danger" onClick={() => remove(t.id)}>
-                    Thu hồi
+                    Revoke
                   </button>
                 </td>
               </tr>
@@ -490,7 +490,7 @@ function TokensTab() {
             {tokens.length === 0 && (
               <tr>
                 <td colSpan={4} className="hint" style={{ textAlign: 'center', padding: 28 }}>
-                  Chưa có token nào.
+                  No API tokens found.
                 </td>
               </tr>
             )}

@@ -36,7 +36,7 @@ export function Post() {
       }
       setUrls(existing)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không tải được bài')
+      setError(err instanceof Error ? err.message : 'Failed to load post')
     } finally {
       setLoading(false)
     }
@@ -53,10 +53,10 @@ export function Post() {
     setError(null)
     try {
       await api.savePublication({ contentId: content.id, platform, publishedUrl: url })
-      setNotice(`Đã lưu link ${PLATFORM_LABELS[platform]}`)
+      setNotice(`Saved link for ${PLATFORM_LABELS[platform]}`)
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lưu link thất bại')
+      setError(err instanceof Error ? err.message : 'Failed to save link')
     } finally {
       setSavingPlatform(null)
     }
@@ -70,20 +70,20 @@ export function Post() {
       await api.complete(content.id)
       navigate('/')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không hoàn thành được')
+      setError(err instanceof Error ? err.message : 'Failed to complete post')
       setBusy(false)
     }
   }
 
   async function release() {
     if (!content) return
-    if (!confirm('Trả bài này về hàng đợi cho người khác nhận?')) return
+    if (!confirm('Return this post back to the queue for someone else?')) return
     setBusy(true)
     try {
       await api.release(content.id)
       navigate('/')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không trả lại được')
+      setError(err instanceof Error ? err.message : 'Failed to return post')
       setBusy(false)
     }
   }
@@ -92,9 +92,9 @@ export function Post() {
   if (!content) {
     return (
       <div className="page stack">
-        <Alert>{error ?? 'Không tìm thấy bài này'}</Alert>
+        <Alert>{error ?? 'Post not found'}</Alert>
         <button className="btn" onClick={() => navigate('/')}>
-          ← Về hàng đợi
+          ← Back to queue
         </button>
       </div>
     )
@@ -107,7 +107,7 @@ export function Post() {
   return (
     <div className="page stack">
       <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => navigate('/')}>
-        ← Hàng đợi
+        ← Queue
       </button>
 
       <div className="stack" style={{ gap: 8 }}>
@@ -141,12 +141,12 @@ export function Post() {
           <div className="row">
             {videos.map((v) => (
               <a key={v.id} className="btn" href={assetDownloadUrl(v.id)} download>
-                ⬇ Tải video ({formatBytes(v.size)})
+                ⬇ Download video ({formatBytes(v.size)})
               </a>
             ))}
             {images.length > 0 && (
               <a className="btn" href={zipUrl(content.id)} download>
-                ⬇ Tải tất cả ảnh ({images.length})
+                ⬇ Download all images ({images.length})
               </a>
             )}
           </div>
@@ -168,8 +168,8 @@ export function Post() {
       {/* ---- links ---- */}
       <div className="card stack">
         <div className="stack" style={{ gap: 3 }}>
-          <h2>Link đã đăng</h2>
-          <p className="hint">Đăng xong ở nền tảng nào thì dán link vào đó rồi bấm Lưu.</p>
+          <h2>Published links</h2>
+          <p className="hint">After publishing on each platform, paste the link and tap Save.</p>
         </div>
 
         {PLATFORM_ORDER.map((platform) => {
@@ -196,7 +196,7 @@ export function Post() {
                   onClick={() => saveLink(platform)}
                   disabled={savingPlatform === platform || !(urls[platform] ?? '').trim()}
                 >
-                  {savingPlatform === platform ? '…' : 'Lưu'}
+                  {savingPlatform === platform ? '…' : 'Save'}
                 </button>
               </div>
             </div>
@@ -208,16 +208,16 @@ export function Post() {
       {content.status === 'CLAIMED' && (
         <div className="stack">
           <button className="btn btn-primary btn-lg btn-block" onClick={complete} disabled={busy || savedCount === 0}>
-            {busy ? 'Đang lưu…' : 'Hoàn thành'}
+            {busy ? 'Saving…' : 'Complete'}
           </button>
-          {savedCount === 0 && <p className="hint">Cần lưu ít nhất một link trước khi hoàn thành.</p>}
+          {savedCount === 0 && <p className="hint">Please save at least one published link before completing.</p>}
           <button className="btn btn-danger btn-block" onClick={release} disabled={busy}>
-            Trả bài về hàng đợi
+            Return post to queue
           </button>
         </div>
       )}
 
-      {content.status === 'PUBLISHED' && <Alert kind="ok">Bài này đã hoàn thành. Cảm ơn bạn!</Alert>}
+      {content.status === 'PUBLISHED' && <Alert kind="ok">This post has been published. Thank you!</Alert>}
     </div>
   )
 }

@@ -76,7 +76,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const data = text ? JSON.parse(text) : {}
 
   if (!res.ok) {
-    throw new ApiError(data.error ?? `Lỗi ${res.status}`, res.status, data.reason)
+    throw new ApiError(data.error ?? `Error ${res.status}`, res.status, data.reason)
   }
   return data as T
 }
@@ -86,15 +86,15 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
   instagram: 'Instagram',
   youtube_shorts: 'YouTube Shorts',
   facebook: 'Facebook',
-  other: 'Khác',
+  other: 'Other',
 }
 
 export const STATUS_LABELS: Record<ContentStatus, string> = {
-  DRAFT: 'Nháp',
-  READY: 'Sẵn sàng',
-  CLAIMED: 'Đang làm',
-  PUBLISHED: 'Đã đăng',
-  FAILED: 'Lỗi',
+  DRAFT: 'Draft',
+  READY: 'Ready',
+  CLAIMED: 'In Progress',
+  PUBLISHED: 'Published',
+  FAILED: 'Failed',
 }
 
 export const api = {
@@ -183,7 +183,7 @@ export const api = {
         body: form,
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new ApiError(data.error ?? 'Tải file thất bại', res.status)
+      if (!res.ok) throw new ApiError(data.error ?? 'Upload failed', res.status)
       return data as { assets: Asset[] }
     },
   },

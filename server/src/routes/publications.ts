@@ -9,7 +9,7 @@ import { requireUser } from '../lib/guards.js'
 const upsertSchema = z.object({
   contentId: z.string().min(1),
   platform: z.enum(PLATFORMS),
-  publishedUrl: z.string().url('Link không hợp lệ'),
+  publishedUrl: z.string().url('Invalid URL'),
   publishedAt: z.string().datetime().optional(),
 })
 
@@ -24,7 +24,7 @@ export async function publicationRoutes(app: FastifyInstance) {
   app.post('/api/publications', async (req, reply) => {
     const parsed = upsertSchema.safeParse(req.body)
     if (!parsed.success) {
-      return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? 'Dữ liệu không hợp lệ' })
+      return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? 'Invalid input' })
     }
     const { contentId, platform, publishedUrl, publishedAt } = parsed.data
     const user = req.user!
@@ -41,7 +41,7 @@ export async function publicationRoutes(app: FastifyInstance) {
       )
       .get()
 
-    if (!owned) return reply.code(403).send({ error: 'Bạn chưa nhận bài này' })
+    if (!owned) return reply.code(403).send({ error: 'You have not claimed this post' })
 
     const existing = db
       .select()
@@ -71,9 +71,9 @@ export async function publicationRoutes(app: FastifyInstance) {
     const user = req.user!
 
     const row = db.select().from(publications).where(eq(publications.id, id)).get()
-    if (!row) return reply.code(404).send({ error: 'Không tìm thấy' })
+    if (!row) return reply.code(404).send({ error: 'Not found' })
     if (user.role !== 'admin' && row.userId !== user.id) {
-      return reply.code(403).send({ error: 'Không có quyền' })
+      return reply.code(403).send({ error: 'Forbidden' })
     }
 
     db.delete(publications).where(eq(publications.id, id)).run()

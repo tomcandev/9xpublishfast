@@ -54,14 +54,14 @@ export async function assetRoutes(app: FastifyInstance) {
     app.get(`/api/assets/:id${suffix}`, async (req, reply) => {
       const { id } = req.params as { id: string }
       const asset = db.select().from(assets).where(eq(assets.id, id)).get()
-      if (!asset) return reply.code(404).send({ error: 'Không tìm thấy file' })
+      if (!asset) return reply.code(404).send({ error: 'File not found' })
 
       if (!canSeeContent(asset.contentId, req.user!)) {
-        return reply.code(404).send({ error: 'Không tìm thấy file' })
+        return reply.code(404).send({ error: 'File not found' })
       }
 
       const abs = safeUploadPath(asset.filePath)
-      if (!abs || !existsSync(abs)) return reply.code(404).send({ error: 'File không còn trên máy chủ' })
+      if (!abs || !existsSync(abs)) return reply.code(404).send({ error: 'File no longer exists on server' })
 
       const filename = basename(asset.originalName).replace(/["\\]/g, '')
       reply
@@ -72,10 +72,10 @@ export async function assetRoutes(app: FastifyInstance) {
     })
   }
 
-  /** "Tải tất cả ảnh" — stream a carousel as one zip. */
+  /** "Download all images" — stream a carousel as one zip. */
   app.get('/api/contents/:id/assets.zip', async (req, reply) => {
     const { id } = req.params as { id: string }
-    if (!canSeeContent(id, req.user!)) return reply.code(404).send({ error: 'Không tìm thấy bài này' })
+    if (!canSeeContent(id, req.user!)) return reply.code(404).send({ error: 'Post not found' })
 
     const content = db.select().from(contents).where(eq(contents.id, id)).get()!
     const rows = db
@@ -85,7 +85,7 @@ export async function assetRoutes(app: FastifyInstance) {
       .orderBy(asc(assets.sortOrder))
       .all()
 
-    if (rows.length === 0) return reply.code(404).send({ error: 'Bài này chưa có file nào' })
+    if (rows.length === 0) return reply.code(404).send({ error: 'This post has no media files' })
 
     const archive = archiver('zip', { zlib: { level: 0 } }) // media is already compressed
     reply

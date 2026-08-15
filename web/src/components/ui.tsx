@@ -55,7 +55,7 @@ export function CopyButton({
 
   return (
     <button type="button" className={className} onClick={copy} disabled={!text}>
-      {copied ? '✓ Đã copy' : label}
+      {copied ? '✓ Copied' : label}
     </button>
   )
 }
@@ -68,7 +68,7 @@ export function Empty({ children }: { children: ReactNode }) {
   return <div className="empty">{children}</div>
 }
 
-export function Spinner({ label = 'Đang tải…' }: { label?: string }) {
+export function Spinner({ label = 'Loading…' }: { label?: string }) {
   return <div className="center-note">{label}</div>
 }
 
@@ -80,9 +80,9 @@ export function formatBytes(bytes: number) {
 
 export function formatDate(iso: string | null) {
   if (!iso) return '—'
-  return new Date(iso).toLocaleString('vi-VN', {
+  return new Date(iso).toLocaleString('en-US', {
     day: '2-digit',
-    month: '2-digit',
+    month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
