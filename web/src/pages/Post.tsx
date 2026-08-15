@@ -213,51 +213,68 @@ export function Post() {
 
       {/* ---- Step 1: Media ---- */}
       {content.assets.length > 0 && (
-        <div className="card stack">
-          <div className="step-header">
-            <span className="step-badge">Step 1</span>
-            <h2>Download Media</h2>
-          </div>
-
-          {videos.map((v) => (
-            <video key={v.id} className="media" src={assetUrl(v.id)} controls preload="metadata" playsInline />
-          ))}
-
-          {images.length > 0 && (
-            <div className="thumbs">
-              {images.map((img) => (
-                <a key={img.id} href={assetUrl(img.id)} target="_blank" rel="noreferrer">
-                  <img className="thumb" src={assetUrl(img.id)} alt={img.originalName} loading="lazy" />
-                </a>
-              ))}
+        <div className="card">
+          <div className="step-split">
+            <div className="step-split-left">
+              <div className="step-header">
+                <span className="step-badge">Step 1</span>
+                <h2>Download Media</h2>
+              </div>
+              <div className="stack" style={{ gap: 8 }}>
+                {videos.map((v) => (
+                  <a key={v.id} className="btn btn-primary btn-step-action" href={assetDownloadUrl(v.id)} download>
+                    ⬇ Download Video ({formatBytes(v.size)})
+                  </a>
+                ))}
+                {images.length > 0 && (
+                  <a className="btn btn-primary btn-step-action" href={zipUrl(content.id)} download>
+                    ⬇ Download All Images ({images.length})
+                  </a>
+                )}
+              </div>
             </div>
-          )}
 
-          <div className="row">
-            {videos.map((v) => (
-              <a key={v.id} className="btn" href={assetDownloadUrl(v.id)} download>
-                ⬇ Download video ({formatBytes(v.size)})
-              </a>
-            ))}
-            {images.length > 0 && (
-              <a className="btn" href={zipUrl(content.id)} download>
-                ⬇ Download all images ({images.length})
-              </a>
-            )}
+            <div className="step-split-right">
+              {videos.map((v) => (
+                <video key={v.id} className="media" src={assetUrl(v.id)} controls preload="metadata" playsInline />
+              ))}
+
+              {images.length > 0 && (
+                <div className="thumbs">
+                  {images.map((img) => (
+                    <a key={img.id} href={assetUrl(img.id)} target="_blank" rel="noreferrer">
+                      <img className="thumb" src={assetUrl(img.id)} alt={img.originalName} loading="lazy" />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
       {/* ---- Step 2: Caption ---- */}
       {content.caption && (
-        <div className="card stack">
-          <div className="step-header">
-            <span className="step-badge">Step 2</span>
-            <h2>Copy Caption</h2>
-            <div className="spacer" />
-            <CopyButton text={content.caption} className="btn btn-sm" />
+        <div className="card">
+          <div className="step-split">
+            <div className="step-split-left">
+              <div className="step-header">
+                <span className="step-badge">Step 2</span>
+                <h2>Copy Caption</h2>
+              </div>
+              <CopyButton
+                text={content.caption}
+                className="btn btn-primary btn-step-action"
+                label="📋 Copy Caption"
+              />
+            </div>
+
+            <div className="step-split-right">
+              <div className="caption-box" style={{ margin: 0 }}>
+                {content.caption}
+              </div>
+            </div>
           </div>
-          <div className="caption-box">{content.caption}</div>
         </div>
       )}
 
