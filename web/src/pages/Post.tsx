@@ -14,6 +14,15 @@ import {
 
 const PLATFORM_ORDER: Platform[] = ['tiktok', 'instagram', 'youtube_shorts', 'facebook', 'other']
 
+function detectPlatform(url: string): Platform {
+  const lower = url.toLowerCase()
+  if (lower.includes('tiktok.com')) return 'tiktok'
+  if (lower.includes('instagram.com') || lower.includes('instagr.am')) return 'instagram'
+  if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube_shorts'
+  if (lower.includes('facebook.com') || lower.includes('fb.watch') || lower.includes('fb.com')) return 'facebook'
+  return 'other'
+}
+
 export function Post() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -24,6 +33,8 @@ export function Post() {
   const [saveStatus, setSaveStatus] = useState<Partial<Record<Platform, 'idle' | 'saving' | 'saved'>>>({})
   const [busy, setBusy] = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [captionCopied, setCaptionCopied] = useState(false)
+  const [mode, setMode] = useState<'auto' | 'manual'>('auto')
   const debounceTimers = useRef<Partial<Record<Platform, NodeJS.Timeout>>>({})
 
   const load = useCallback(async () => {
@@ -120,6 +131,44 @@ export function Post() {
     [doSaveLink],
   )
 
+  const handleAutoPasteAny = useCallback(async () => {
+    let text = ''
+    try {
+      text = await navigator.clipboard.readText()
+    } catch {
+      text = window.prompt('Paste published post URL:') || ''
+    }
+    const trimmed = text.trim()
+    if (!trimmed) return
+    const platform = detectPlatform(trimmed)
+    setUrls((u) => ({ ...u, [platform]: trimmed }))
+    await doSaveLink(platform, trimmed)
+  }, [doSaveLink])
+
+  const handleDownloadAllSeparate = useCallback(
+    async (assetsList: Asset[]) => {
+      if (!assetsList.length) return
+      setDownloading(true)
+      try {
+        for (let i = 0; i < assetsList.length; i++) {
+          const a = assetsList[i]!
+          const link = document.createElement('a')
+          link.href = assetDownloadUrl(a.id)
+          link.download = a.originalName || `${content?.code || 'media'}_${i + 1}.${a.type === 'video' ? 'mp4' : 'jpg'}`
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          if (i < assetsList.length - 1) {
+            await new Promise((r) => setTimeout(r, 450))
+          }
+        }
+      } finally {
+        setTimeout(() => setDownloading(false), 1200)
+      }
+    },
+    [content?.code],
+  )
+
   const handleShareOrDownload = useCallback(
     async (assetsList: Asset[]) => {
       if (!assetsList.length) return
@@ -155,7 +204,6 @@ export function Post() {
           }
         } catch (err) {
           if (err instanceof Error && err.name === 'AbortError') {
-            // User dismissed native share sheet, do not fallback or error
             setDownloading(false)
             return
           }
@@ -164,24 +212,25 @@ export function Post() {
       }
 
       // Fallback: direct download separate files
-      try {
-        for (let i = 0; i < assetsList.length; i++) {
-          const a = assetsList[i]!
-          const link = document.createElement('a')
-          link.href = assetDownloadUrl(a.id)
-          link.download = a.originalName || `${content?.code || 'media'}_${i + 1}.${a.type === 'video' ? 'mp4' : 'jpg'}`
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          if (i < assetsList.length - 1) {
-            await new Promise((r) => setTimeout(r, 450))
-          }
-        }
-      } finally {
-        setTimeout(() => setDownloading(false), 1200)
-      }
+      await handleDownloadAllSeparate(assetsList)
     },
-    [content?.caption, content?.code, content?.title],
+    [content?.caption, content?.code, content?.title, handleDownloadAllSeparate],
+  )
+
+  const handleAutoShareAndCopy = useCallback(
+    async (assetsList: Asset[]) => {
+      if (content?.caption) {
+        try {
+          await navigator.clipboard.writeText(content.caption)
+          setCaptionCopied(true)
+          setTimeout(() => setCaptionCopied(false), 3500)
+        } catch {
+          // ignore
+        }
+      }
+      await handleShareOrDownload(assetsList)
+    },
+    [content?.caption, handleShareOrDownload],
   )
 
   async function complete() {
@@ -232,12 +281,36 @@ export function Post() {
   const savedCount = content.publications.filter((p) => p.publishedUrl).length
   const videosTotalSize = videos.reduce((sum, v) => sum + v.size, 0)
   const imagesTotalSize = images.reduce((sum, img) => sum + img.size, 0)
+  const allMedia = videos.length > 0 ? videos : images
 
   return (
     <div className="page stack">
-      <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => navigate('/')}>
-        ← Back
-      </button>
+      <div className="mode-toggle-bar">
+        <button className="btn btn-ghost btn-sm" onClick={() => navigate('/')}>
+          ← Back
+        </button>
+
+        <div className="mode-toggle" role="tablist" aria-label="Workflow Mode">
+          <button
+            type="button"
+            className={`mode-toggle-btn ${mode === 'auto' ? 'active' : ''}`}
+            onClick={() => setMode('auto')}
+            role="tab"
+            aria-selected={mode === 'auto'}
+          >
+            ⚡ Fast Auto (2 Steps)
+          </button>
+          <button
+            type="button"
+            className={`mode-toggle-btn ${mode === 'manual' ? 'active' : ''}`}
+            onClick={() => setMode('manual')}
+            role="tab"
+            aria-selected={mode === 'manual'}
+          >
+            🛠️ Manual (3 Steps)
+          </button>
+        </div>
+      </div>
 
       <div className="stack" style={{ gap: 8 }}>
         <div className="row-tight">
@@ -252,193 +325,351 @@ export function Post() {
 
       {error && <Snackbar message={error} kind="error" onClose={() => setError(null)} />}
 
-      {/* ---- 3-step quick guide ---- */}
-      <div className="guide-card" aria-label="Publishing workflow guide">
-        <div className="guide-title">How to publish in 3 simple steps:</div>
-        <div className="guide-steps">
-          <div className="guide-step">
-            <div className="guide-step-badge">1</div>
-            <div className="guide-step-body">
-              <strong>Share / Save Media</strong>
-              <span>Share directly to TikTok/IG apps or save to camera roll</span>
-            </div>
-          </div>
-
-          <div className="guide-step">
-            <div className="guide-step-badge">2</div>
-            <div className="guide-step-body">
-              <strong>Copy Caption & Customize</strong>
-              <span>Copy caption, add trending audio, stickers & tags in the app</span>
-            </div>
-          </div>
-
-          <div className="guide-step">
-            <div className="guide-step-badge">3</div>
-            <div className="guide-step-body">
-              <strong>Publish & Paste Live Link</strong>
-              <span>Publish on your channel, copy the live post link, and paste below</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ---- Step 1: Media ---- */}
-      {content.assets.length > 0 && (
-        <div className="card">
-          <div className="step-split">
-            <div className="step-split-left">
-              <div className="step-header">
-                <span className="step-badge">Step 1</span>
-                <h2>Share / Save Media</h2>
-              </div>
-              <div className="stack" style={{ gap: 8 }}>
-                {videos.length > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-step-action"
-                    onClick={() => void handleShareOrDownload(videos)}
-                    disabled={downloading}
-                  >
-                    <span className="btn-step-title">
-                      {downloading ? '⏳ Preparing…' : '📲 Share / Save Video'}
-                    </span>
-                    <span className="btn-step-sub">
-                      {videos.length === 1 ? '1 video' : `${videos.length} videos`} • {formatBytes(videosTotalSize)}
-                    </span>
-                  </button>
-                )}
-                {images.length > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-step-action"
-                    onClick={() => void handleShareOrDownload(images)}
-                    disabled={downloading}
-                  >
-                    <span className="btn-step-title">
-                      {downloading ? '⏳ Preparing…' : '📲 Share / Save Images'}
-                    </span>
-                    <span className="btn-step-sub">
-                      {images.length === 1 ? '1 image' : `${images.length} separate images`} • {formatBytes(imagesTotalSize)}
-                    </span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="step-split-right">
-              {videos.map((v) => (
-                <video key={v.id} className="media" src={assetUrl(v.id)} controls preload="metadata" playsInline />
-              ))}
-
-              {images.length > 0 && (
-                <div className="carousel-scroll-gallery" aria-label="Carousel image sequence">
-                  {images.map((img, idx) => (
-                    <a
-                      key={img.id}
-                      href={assetUrl(img.id)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="carousel-scroll-item"
-                      title={`Slide ${idx + 1}: ${img.originalName} (tap to view full)`}
-                    >
-                      <img className="carousel-scroll-img" src={assetUrl(img.id)} alt={img.originalName} loading="lazy" />
-                      <span className="carousel-scroll-badge">{idx + 1}</span>
-                    </a>
-                  ))}
+      {/* ==================== AUTO MODE (2 STEPS) ==================== */}
+      {mode === 'auto' ? (
+        <>
+          {/* Quick 2-step Guide Card */}
+          <div className="guide-card" aria-label="Auto workflow guide">
+            <div className="guide-title">⚡ Fast 2-Step Publishing:</div>
+            <div className="guide-steps">
+              <div className="guide-step">
+                <div className="guide-step-badge">1</div>
+                <div className="guide-step-body">
+                  <strong>1-Tap Share & Copy</strong>
+                  <span>Auto-copies caption + opens TikTok/IG share sheet to post</span>
                 </div>
-              )}
+              </div>
+
+              <div className="guide-step">
+                <div className="guide-step-badge">2</div>
+                <div className="guide-step-body">
+                  <strong>Paste Live Link</strong>
+                  <span>Auto-detects platform and saves your live post link</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* ---- Step 2: Caption ---- */}
-      {content.caption && (
-        <div className="card">
-          <div className="step-split">
-            <div className="step-split-left">
+          {/* Step 1: 1-Tap Share & Copy */}
+          {content.assets.length > 0 && (
+            <div className="card">
+              <div className="step-split">
+                <div className="step-split-left">
+                  <div className="step-header">
+                    <span className="step-badge">Step 1</span>
+                    <h2>1-Tap Share & Copy</h2>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-step-action"
+                    style={{ padding: '15px 18px' }}
+                    onClick={() => void handleAutoShareAndCopy(allMedia)}
+                    disabled={downloading}
+                  >
+                    <span className="btn-step-title" style={{ fontSize: '1rem' }}>
+                      {downloading ? '⏳ Preparing & Copying…' : '⚡ Share & Copy Caption'}
+                    </span>
+                    <span className="btn-step-sub">
+                      {videos.length > 0
+                        ? `Auto-copies caption + shares video (${formatBytes(videosTotalSize)})`
+                        : `Auto-copies caption + shares ${images.length} images (${formatBytes(imagesTotalSize)})`}
+                    </span>
+                  </button>
+
+                  {captionCopied && (
+                    <div className="center-note" style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.82rem' }}>
+                      ✓ Caption copied to clipboard!
+                    </div>
+                  )}
+                </div>
+
+                <div className="step-split-right">
+                  {videos.map((v) => (
+                    <video key={v.id} className="media" src={assetUrl(v.id)} controls preload="metadata" playsInline />
+                  ))}
+
+                  {images.length > 0 && (
+                    <div className="carousel-scroll-gallery" aria-label="Carousel image sequence">
+                      {images.map((img, idx) => (
+                        <a
+                          key={img.id}
+                          href={assetUrl(img.id)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="carousel-scroll-item"
+                          title={`Slide ${idx + 1}: ${img.originalName} (tap to view full)`}
+                        >
+                          <img className="carousel-scroll-img" src={assetUrl(img.id)} alt={img.originalName} loading="lazy" />
+                          <span className="carousel-scroll-badge">{idx + 1}</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Auto Paste & Platform Links */}
+          <div className="card stack">
+            <div className="stack" style={{ gap: 6 }}>
               <div className="step-header">
                 <span className="step-badge">Step 2</span>
-                <h2>Copy Caption</h2>
+                <h2>Publish & Paste Live Link</h2>
               </div>
-              <CopyButton
-                text={content.caption}
-                className="btn btn-primary btn-step-action"
-                label="📋 Copy Caption"
-              />
+              <p className="hint">
+                After publishing on your channel, copy the post link and tap below to auto-save.
+              </p>
             </div>
 
-            <div className="step-split-right">
-              <div className="caption-box" style={{ margin: 0 }}>
-                {content.caption}
-              </div>
+            <button type="button" className="btn-auto-paste" onClick={() => void handleAutoPasteAny()}>
+              <PasteIcon />
+              <span>📋 Auto-Detect & Paste Copied Link</span>
+            </button>
+
+            <div className="link-rows" style={{ marginTop: 4 }}>
+              {PLATFORM_ORDER.map((platform) => {
+                const saved = content.publications.find((p) => p.platform === platform)
+                const status = saveStatus[platform]
+                const isSaved = !!saved?.publishedUrl && (urls[platform] ?? '').trim() === saved.publishedUrl
+
+                return (
+                  <div className="link-row" key={platform}>
+                    <label className="link-row-label" htmlFor={`url-auto-${platform}`}>
+                      <PlatformIcon platform={platform} />
+                      <span>{PLATFORM_LABELS[platform]}</span>
+                    </label>
+                    <div className="link-row-input-wrap">
+                      <input
+                        id={`url-auto-${platform}`}
+                        className="input link-row-input"
+                        type="url"
+                        inputMode="url"
+                        placeholder="Paste live link (https://…)"
+                        value={urls[platform] ?? ''}
+                        onChange={(e) => handleUrlChange(platform, e.target.value)}
+                        onBlur={() => handleUrlBlur(platform)}
+                        autoCapitalize="none"
+                        spellCheck={false}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm paste-btn"
+                        onClick={() => void handlePaste(platform)}
+                        title="Paste from clipboard"
+                      >
+                        {status === 'saving' ? (
+                          <span className="save-indicator saving">Saving…</span>
+                        ) : status === 'saved' || isSaved ? (
+                          <span className="save-indicator saved" title="Saved">
+                            ✓
+                          </span>
+                        ) : (
+                          <>
+                            <PasteIcon />
+                            <span>Paste</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ---- Step 3: Links ---- */}
-      <div className="card stack">
-        <div className="stack" style={{ gap: 3 }}>
-          <div className="step-header">
-            <span className="step-badge">Step 3</span>
-            <h2>Publish & Paste Live Links</h2>
-          </div>
-          <p className="hint">
-            After publishing natively, copy the live post URL and paste it here. Links are saved automatically.
-          </p>
-        </div>
-
-        <div className="link-rows">
-          {PLATFORM_ORDER.map((platform) => {
-            const saved = content.publications.find((p) => p.platform === platform)
-            const status = saveStatus[platform]
-            const isSaved = !!saved?.publishedUrl && (urls[platform] ?? '').trim() === saved.publishedUrl
-
-            return (
-              <div className="link-row" key={platform}>
-                <label className="link-row-label" htmlFor={`url-${platform}`}>
-                  <PlatformIcon platform={platform} />
-                  <span>{PLATFORM_LABELS[platform]}</span>
-                </label>
-                <div className="link-row-input-wrap">
-                  <input
-                    id={`url-${platform}`}
-                    className="input link-row-input"
-                    type="url"
-                    inputMode="url"
-                    placeholder="Paste live post link (https://…)"
-                    value={urls[platform] ?? ''}
-                    onChange={(e) => handleUrlChange(platform, e.target.value)}
-                    onBlur={() => handleUrlBlur(platform)}
-                    autoCapitalize="none"
-                    spellCheck={false}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm paste-btn"
-                    onClick={() => void handlePaste(platform)}
-                    title="Paste from clipboard"
-                  >
-                    {status === 'saving' ? (
-                      <span className="save-indicator saving">Saving…</span>
-                    ) : status === 'saved' || isSaved ? (
-                      <span className="save-indicator saved" title="Saved">
-                        ✓
-                      </span>
-                    ) : (
-                      <>
-                        <PasteIcon />
-                        <span>Paste</span>
-                      </>
-                    )}
-                  </button>
+        </>
+      ) : (
+        /* ==================== MANUAL MODE (3 STEPS) ==================== */
+        <>
+          {/* 3-step quick guide */}
+          <div className="guide-card" aria-label="Manual workflow guide">
+            <div className="guide-title">🛠️ Manual 3-Step Publishing:</div>
+            <div className="guide-steps">
+              <div className="guide-step">
+                <div className="guide-step-badge">1</div>
+                <div className="guide-step-body">
+                  <strong>Download Media</strong>
+                  <span>Save video or carousel images to your device</span>
                 </div>
               </div>
-            )
-          })}
-        </div>
-      </div>
+
+              <div className="guide-step">
+                <div className="guide-step-badge">2</div>
+                <div className="guide-step-body">
+                  <strong>Copy Caption & Customize</strong>
+                  <span>Copy caption, add trending audio, stickers & tags in the app</span>
+                </div>
+              </div>
+
+              <div className="guide-step">
+                <div className="guide-step-badge">3</div>
+                <div className="guide-step-body">
+                  <strong>Publish & Paste Live Link</strong>
+                  <span>Publish on your channel, copy the live post link, and paste below</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 1: Media */}
+          {content.assets.length > 0 && (
+            <div className="card">
+              <div className="step-split">
+                <div className="step-split-left">
+                  <div className="step-header">
+                    <span className="step-badge">Step 1</span>
+                    <h2>Download Media</h2>
+                  </div>
+                  <div className="stack" style={{ gap: 8 }}>
+                    {videos.length > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-step-action"
+                        onClick={() => void handleDownloadAllSeparate(videos)}
+                        disabled={downloading}
+                      >
+                        <span className="btn-step-title">
+                          {downloading ? '⏳ Downloading…' : '⬇ Download Video'}
+                        </span>
+                        <span className="btn-step-sub">
+                          {videos.length === 1 ? '1 video' : `${videos.length} videos`} • {formatBytes(videosTotalSize)}
+                        </span>
+                      </button>
+                    )}
+                    {images.length > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-step-action"
+                        onClick={() => void handleDownloadAllSeparate(images)}
+                        disabled={downloading}
+                      >
+                        <span className="btn-step-title">
+                          {downloading ? '⏳ Downloading…' : '⬇ Download All Images'}
+                        </span>
+                        <span className="btn-step-sub">
+                          {images.length === 1 ? '1 image' : `${images.length} separate images`} • {formatBytes(imagesTotalSize)}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="step-split-right">
+                  {videos.map((v) => (
+                    <video key={v.id} className="media" src={assetUrl(v.id)} controls preload="metadata" playsInline />
+                  ))}
+
+                  {images.length > 0 && (
+                    <div className="carousel-scroll-gallery" aria-label="Carousel image sequence">
+                      {images.map((img, idx) => (
+                        <a
+                          key={img.id}
+                          href={assetUrl(img.id)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="carousel-scroll-item"
+                          title={`Slide ${idx + 1}: ${img.originalName} (tap to view full)`}
+                        >
+                          <img className="carousel-scroll-img" src={assetUrl(img.id)} alt={img.originalName} loading="lazy" />
+                          <span className="carousel-scroll-badge">{idx + 1}</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Caption */}
+          {content.caption && (
+            <div className="card">
+              <div className="step-split">
+                <div className="step-split-left">
+                  <div className="step-header">
+                    <span className="step-badge">Step 2</span>
+                    <h2>Copy Caption</h2>
+                  </div>
+                  <CopyButton
+                    text={content.caption}
+                    className="btn btn-primary btn-step-action"
+                    label="📋 Copy Caption"
+                  />
+                </div>
+
+                <div className="step-split-right">
+                  <div className="caption-box" style={{ margin: 0 }}>
+                    {content.caption}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Links */}
+          <div className="card stack">
+            <div className="stack" style={{ gap: 3 }}>
+              <div className="step-header">
+                <span className="step-badge">Step 3</span>
+                <h2>Publish & Paste Live Links</h2>
+              </div>
+              <p className="hint">
+                After publishing natively, copy the live post URL and paste it here. Links are saved automatically.
+              </p>
+            </div>
+
+            <div className="link-rows">
+              {PLATFORM_ORDER.map((platform) => {
+                const saved = content.publications.find((p) => p.platform === platform)
+                const status = saveStatus[platform]
+                const isSaved = !!saved?.publishedUrl && (urls[platform] ?? '').trim() === saved.publishedUrl
+
+                return (
+                  <div className="link-row" key={platform}>
+                    <label className="link-row-label" htmlFor={`url-manual-${platform}`}>
+                      <PlatformIcon platform={platform} />
+                      <span>{PLATFORM_LABELS[platform]}</span>
+                    </label>
+                    <div className="link-row-input-wrap">
+                      <input
+                        id={`url-manual-${platform}`}
+                        className="input link-row-input"
+                        type="url"
+                        inputMode="url"
+                        placeholder="Paste live post link (https://…)"
+                        value={urls[platform] ?? ''}
+                        onChange={(e) => handleUrlChange(platform, e.target.value)}
+                        onBlur={() => handleUrlBlur(platform)}
+                        autoCapitalize="none"
+                        spellCheck={false}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm paste-btn"
+                        onClick={() => void handlePaste(platform)}
+                        title="Paste from clipboard"
+                      >
+                        {status === 'saving' ? (
+                          <span className="save-indicator saving">Saving…</span>
+                        ) : status === 'saved' || isSaved ? (
+                          <span className="save-indicator saved" title="Saved">
+                            ✓
+                          </span>
+                        ) : (
+                          <>
+                            <PasteIcon />
+                            <span>Paste</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ---- finish ---- */}
       {content.status === 'CLAIMED' && (
