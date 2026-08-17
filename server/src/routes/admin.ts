@@ -49,22 +49,30 @@ export async function adminRoutes(app: FastifyInstance) {
     const body = z
       .object({
         displayName: z.string().max(120).optional(),
+        email: z.string().email().optional().or(z.literal('')).nullable(),
         role: z.enum(ROLES).optional(),
         active: z.boolean().optional(),
-        password: z.string().min(8).optional(),
+        password: z.string().min(8, 'Password must be at least 8 characters').optional().or(z.literal('')),
       })
       .safeParse(req.body)
-    if (!body.success) return reply.code(400).send({ error: 'Invalid input' })
+    if (!body.success) return reply.code(400).send({ error: body.error.issues[0]?.message ?? 'Invalid input' })
 
     const existing = db.select().from(users).where(eq(users.id, id)).get()
     if (!existing) return reply.code(404).send({ error: 'Not found' })
 
-    const { password, ...rest } = body.data
+    const { password, email, ...rest } = body.data
     const patch: Record<string, unknown> = { ...rest }
-    if (password) patch.passwordHash = await hashPassword(password)
+    if (email !== undefined) patch.email = email ? email.trim().toLowerCase() : null
+    if (password && password.trim().length > 0) patch.passwordHash = await hashPassword(password)
 
-    db.update(users).set(patch).where(eq(users.id, id)).run()
-    return { user: publicUser(db.select().from(users).where(eq(users.id, id)).get()!) }
+    try {
+      db.update(users).set(patch).where(eq(users.id, id)).run()
+      return { user: publicUser(db.select().from(users).where(eq(users.id, id)).get()!) }
+    } catch (err) {
+      const message = (err as Error).message
+      const conflict = message.includes('UNIQUE') ? 'Email already in use' : message
+      return reply.code(400).send({ error: conflict })
+    }
   })
 
   /* ---------- contents ---------- */

@@ -373,6 +373,7 @@ function ContentsTab() {
 
 function UsersTab() {
   const [users, setUsers] = useState<User[]>([])
+  const [editingUser, setEditingUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -514,14 +515,194 @@ function UsersTab() {
                   </span>
                 </td>
                 <td>
-                  <button className="btn btn-sm" onClick={() => toggleActive(u)}>
-                    {u.active ? 'Disable' : 'Enable'}
-                  </button>
+                  <div className="row-tight">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => setEditingUser(u)}
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button className="btn btn-sm" onClick={() => toggleActive(u)}>
+                      {u.active ? 'Disable' : 'Enable'}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onSaved={async () => {
+            setNotice(`✓ Updated user @${editingUser.username} successfully.`)
+            await load()
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+function EditUserModal({
+  user,
+  onClose,
+  onSaved,
+}: {
+  user: User
+  onClose: () => void
+  onSaved: () => Promise<void>
+}) {
+  const [displayName, setDisplayName] = useState(user.displayName || '')
+  const [email, setEmail] = useState(user.email || '')
+  const [role, setRole] = useState<Role>(user.role)
+  const [active, setActive] = useState(user.active)
+  const [newPassword, setNewPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (newPassword && newPassword.length < 8) {
+      setError('New password must be at least 8 characters')
+      return
+    }
+
+    setBusy(true)
+    setError(null)
+    try {
+      await api.admin.updateUser(user.id, {
+        displayName: displayName.trim() || user.username,
+        email: email.trim() || null,
+        role,
+        active,
+        password: newPassword ? newPassword : undefined,
+      })
+      await onSaved()
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Update failed')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div
+      className="modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div className="modal-card stack" style={{ maxWidth: 460 }}>
+        <div className="row" style={{ justifyContent: 'space-between' }}>
+          <h2 style={{ fontSize: '1.2rem' }}>Edit User @{user.username}</h2>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        {error && <Alert>{error}</Alert>}
+
+        <form className="stack" style={{ gap: 14 }} onSubmit={handleSubmit}>
+          <div className="field">
+            <label className="label" htmlFor="edit-display-name">
+              Display Name
+            </label>
+            <input
+              id="edit-display-name"
+              className="input"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder={user.username}
+              required
+            />
+          </div>
+
+          <div className="field">
+            <label className="label" htmlFor="edit-email">
+              Email (optional)
+            </label>
+            <input
+              id="edit-email"
+              className="input"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="user@example.com"
+            />
+          </div>
+
+          <div className="row" style={{ gap: 12 }}>
+            <div className="field" style={{ flex: '1 1 140px' }}>
+              <label className="label" htmlFor="edit-role">
+                Role
+              </label>
+              <select
+                id="edit-role"
+                className="select"
+                value={role}
+                onChange={(e) => setRole(e.target.value as Role)}
+              >
+                <option value="kol">KOL</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
+            <div className="field" style={{ flex: '1 1 140px' }}>
+              <label className="label" htmlFor="edit-active">
+                Account Status
+              </label>
+              <select
+                id="edit-active"
+                className="select"
+                value={active ? 'active' : 'disabled'}
+                onChange={(e) => setActive(e.target.value === 'active')}
+              >
+                <option value="active">Active</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </div>
+          </div>
+
+          <div
+            className="field stack"
+            style={{
+              padding: '12px',
+              background: 'var(--bg)',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border)',
+              gap: 6,
+            }}
+          >
+            <label className="label" htmlFor="edit-password" style={{ fontWeight: 650 }}>
+              🔑 Set New Password (optional)
+            </label>
+            <input
+              id="edit-password"
+              className="input"
+              type="text"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Leave blank to keep current password (min 8 chars)"
+            />
+            <span className="hint" style={{ fontSize: '0.76rem' }}>
+              If filled, user's password will be immediately updated to this new password.
+            </span>
+          </div>
+
+          <div className="row" style={{ justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
+            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={busy}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )

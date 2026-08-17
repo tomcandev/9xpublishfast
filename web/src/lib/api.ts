@@ -194,8 +194,10 @@ export const api = {
       displayName?: string
       role: Role
     }) => request<{ user: User }>('/api/admin/users', { method: 'POST', body: JSON.stringify(input) }),
-    updateUser: (id: string, patch: Partial<{ active: boolean; role: Role; password: string; displayName: string }>) =>
-      request<{ user: User }>(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+    updateUser: (
+      id: string,
+      patch: Partial<{ active: boolean; role: Role; password: string; displayName: string; email: string | null }>,
+    ) => request<{ user: User }>(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
     contents: () => request<{ contents: Omit<Content, 'assets' | 'publications'>[] }>('/api/admin/contents'),
     updateContent: (id: string, patch: Partial<{ status: ContentStatus; title: string; caption: string }>) =>
