@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Alert, Spinner, StatusBadge, formatDate } from '../components/ui'
-import { api, type Content, type ContentStatus, type Role, type User } from '../lib/api'
+import { api, assetUrl, type Content, type ContentStatus, type Role, type User } from '../lib/api'
 
 type Tab = 'contents' | 'users' | 'tokens'
-type AdminContent = Omit<Content, 'assets' | 'publications'>
 
 export function Admin() {
   const [tab, setTab] = useState<Tab>('contents')
@@ -37,7 +36,9 @@ export function Admin() {
 /* ---------------- contents ---------------- */
 
 function ContentsTab() {
-  const [items, setItems] = useState<AdminContent[]>([])
+  const [items, setItems] = useState<Content[]>([])
+  const [editingContent, setEditingContent] = useState<Content | null>(null)
+  const [allUsers, setAllUsers] = useState<User[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -55,8 +56,12 @@ function ContentsTab() {
 
   const load = useCallback(async () => {
     try {
-      const { contents } = await api.admin.contents()
+      const [{ contents }, usersRes] = await Promise.all([
+        api.admin.contents(),
+        api.admin.users().catch(() => ({ users: [] })),
+      ])
       setItems(contents)
+      setAllUsers(usersRes.users)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
@@ -337,6 +342,13 @@ function ContentsTab() {
                   <td className="hint">{formatDate(c.createdAt)}</td>
                   <td>
                     <div className="row-tight">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost"
+                        onClick={() => setEditingContent(c)}
+                      >
+                        ✏️ Edit
+                      </button>
                       {c.status === 'DRAFT' && (
                         <button className="btn btn-sm btn-primary" onClick={() => setStatus(c.id, 'READY')}>
                           Ready
@@ -364,6 +376,331 @@ function ContentsTab() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {editingContent && (
+        <EditContentModal
+          content={editingContent}
+          users={allUsers}
+          onClose={() => setEditingContent(null)}
+          onSaved={async () => {
+            setNotice(`✓ Updated content "${editingContent.code}" successfully.`)
+            await load()
+          }}
+          onDeleted={async () => {
+            setNotice(`✓ Deleted content "${editingContent.code}".`)
+            await load()
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+function EditContentModal({
+  content,
+  users,
+  onClose,
+  onSaved,
+  onDeleted,
+}: {
+  content: Content
+  users: User[]
+  onClose: () => void
+  onSaved: () => Promise<void>
+  onDeleted: () => Promise<void>
+}) {
+  const [code, setCode] = useState(content.code)
+  const [title, setTitle] = useState(content.title || '')
+  const [caption, setCaption] = useState(content.caption || '')
+  const [contentType, setContentType] = useState<'video' | 'carousel'>(content.contentType)
+  const [status, setStatus] = useState<ContentStatus>(content.status)
+  const [assignedUserId, setAssignedUserId] = useState<string>(content.assignedUserId || '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const videos = content.assets ? content.assets.filter((a) => a.type === 'video' || (a.mime && a.mime.startsWith('video/'))) : []
+  const images = content.assets ? content.assets.filter((a) => a.type === 'image' || (a.mime && a.mime.startsWith('image/'))) : []
+
+  async function handleSave(e: FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    try {
+      await api.admin.updateContent(content.id, {
+        code: code.trim(),
+        title: title.trim() || null,
+        caption: caption.trim() || null,
+        contentType,
+        status,
+        assignedUserId: assignedUserId || null,
+      })
+      await onSaved()
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save failed')
+      setBusy(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm(`Delete content "${content.code}"? All attached media files and links will be permanently deleted.`)) {
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      await api.admin.deleteContent(content.id)
+      await onDeleted()
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Deletion failed')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div
+      className="modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div className="modal-card stack" style={{ maxWidth: 620, maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="row-tight" style={{ gap: 8 }}>
+            <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Review & Edit Content</h2>
+            <span className="code">{content.code}</span>
+          </div>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        {error && <Alert>{error}</Alert>}
+
+        {/* Media Preview Section */}
+        {content.assets && content.assets.length > 0 && (
+          <div
+            className="stack"
+            style={{
+              padding: 12,
+              background: 'var(--bg)',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border)',
+              gap: 8,
+            }}
+          >
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="label" style={{ fontSize: '0.8rem', fontWeight: 650 }}>
+                Attached Media ({content.assets.length} file{content.assets.length > 1 ? 's' : ''})
+              </span>
+              <span className="hint" style={{ fontSize: '0.75rem' }}>
+                {content.contentType === 'carousel' ? '📸 Carousel Slides' : '🎬 Video'}
+              </span>
+            </div>
+
+            {videos.length > 0 && (
+              <div className="stack" style={{ gap: 8 }}>
+                {videos.map((v) => (
+                  <video
+                    key={v.id}
+                    src={assetUrl(v.id)}
+                    controls
+                    preload="metadata"
+                    playsInline
+                    style={{ maxHeight: 200, width: '100%', borderRadius: 'var(--radius-sm)' }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {images.length > 0 && (
+              <div
+                className="carousel-scroll-gallery"
+                style={{ padding: '4px 0', overflowX: 'auto', display: 'flex', gap: 8 }}
+              >
+                {images.map((img, idx) => (
+                  <a
+                    key={img.id}
+                    href={assetUrl(img.id)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="carousel-scroll-item"
+                    title={`Slide ${idx + 1}: ${img.originalName} (click for full size)`}
+                    style={{
+                      flexShrink: 0,
+                      position: 'relative',
+                      width: 80,
+                      height: 110,
+                      borderRadius: 'var(--radius-sm)',
+                      overflow: 'hidden',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    <img
+                      src={assetUrl(img.id)}
+                      alt={img.originalName}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                    <span
+                      className="carousel-scroll-badge"
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        left: 4,
+                        background: 'rgba(0,0,0,0.75)',
+                        color: '#fff',
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        fontSize: '0.7rem',
+                      }}
+                    >
+                      {idx + 1}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Edit Form */}
+        <form className="stack" style={{ gap: 14 }} onSubmit={handleSave}>
+          <div className="row" style={{ gap: 12 }}>
+            <div className="field" style={{ flex: '1 1 140px' }}>
+              <label className="label" htmlFor="edit-code">
+                Code *
+              </label>
+              <input
+                id="edit-code"
+                className="input"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="field" style={{ flex: '1 1 120px' }}>
+              <label className="label" htmlFor="edit-status">
+                Status
+              </label>
+              <select
+                id="edit-status"
+                className="select"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as ContentStatus)}
+              >
+                <option value="DRAFT">DRAFT</option>
+                <option value="READY">READY</option>
+                <option value="CLAIMED">CLAIMED</option>
+                <option value="PUBLISHED">PUBLISHED</option>
+                <option value="FAILED">FAILED</option>
+              </select>
+            </div>
+
+            <div className="field" style={{ flex: '1 1 120px' }}>
+              <label className="label" htmlFor="edit-ctype">
+                Type
+              </label>
+              <select
+                id="edit-ctype"
+                className="select"
+                value={contentType}
+                onChange={(e) => setContentType(e.target.value as 'video' | 'carousel')}
+              >
+                <option value="video">Video</option>
+                <option value="carousel">Carousel</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="field">
+            <label className="label" htmlFor="edit-title">
+              Title
+            </label>
+            <input
+              id="edit-title"
+              className="input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. PTE Speaking Repeat Sentence Strategy"
+            />
+          </div>
+
+          <div className="field">
+            <label className="label" htmlFor="edit-assigned">
+              Assigned KOL (Optional)
+            </label>
+            <select
+              id="edit-assigned"
+              className="select"
+              value={assignedUserId}
+              onChange={(e) => setAssignedUserId(e.target.value)}
+            >
+              <option value="">-- Open Queue (Any KOL can claim) --</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  @{u.username} ({u.displayName}){u.notes ? ` - ${u.notes}` : ''}
+                </option>
+              ))}
+            </select>
+            <span className="hint" style={{ fontSize: '0.75rem' }}>
+              If set, only this specific KOL will see and be able to claim this content item.
+            </span>
+          </div>
+
+          <div className="field">
+            <label className="label" htmlFor="edit-caption">
+              Caption & Hashtags
+            </label>
+            <textarea
+              id="edit-caption"
+              className="textarea"
+              rows={4}
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="Caption text with hashtags..."
+            />
+          </div>
+
+          {content.publications && content.publications.length > 0 && (
+            <div className="stack" style={{ gap: 6 }}>
+              <span className="label" style={{ fontSize: '0.8rem' }}>Submitted Proof of Work Links:</span>
+              {content.publications.map((p) => (
+                <div key={p.id} className="row-tight" style={{ fontSize: '0.82rem' }}>
+                  <span className="badge">{p.platform}</span>
+                  {p.publishedUrl ? (
+                    <a href={p.publishedUrl} target="_blank" rel="noreferrer" className="code" style={{ textDecoration: 'underline' }}>
+                      {p.publishedUrl}
+                    </a>
+                  ) : (
+                    <span className="hint">No link provided</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+            <button
+              type="button"
+              className="btn btn-danger btn-sm"
+              onClick={handleDelete}
+              disabled={busy}
+            >
+              🗑️ Delete Content
+            </button>
+            <div className="row-tight" style={{ gap: 8 }}>
+              <button type="button" className="btn btn-ghost" onClick={onClose} disabled={busy}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={busy}>
+                {busy ? 'Saving…' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   )

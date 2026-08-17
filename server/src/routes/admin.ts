@@ -1,7 +1,7 @@
 import { unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { FastifyInstance } from 'fastify'
-import { desc, eq, inArray } from 'drizzle-orm'
+import { asc, desc, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/index.js'
 import { ROLES, apiTokens, assets, contents, publications, users } from '../db/schema.js'
@@ -84,27 +84,71 @@ export async function adminRoutes(app: FastifyInstance) {
 
   /* ---------- contents ---------- */
 
-  app.get('/api/admin/contents', async () => ({
-    contents: db.select().from(contents).orderBy(desc(contents.createdAt)).limit(500).all(),
-  }))
+  app.get('/api/admin/contents', async () => {
+    const rows = db.select().from(contents).orderBy(desc(contents.createdAt)).limit(500).all()
+    if (rows.length === 0) return { contents: [] }
+    const ids = rows.map((r) => r.id)
+    const assetRows = db
+      .select()
+      .from(assets)
+      .where(inArray(assets.contentId, ids))
+      .orderBy(asc(assets.sortOrder))
+      .all()
+    const pubRows = db.select().from(publications).where(inArray(publications.contentId, ids)).all()
+
+    return {
+      contents: rows.map((row) => ({
+        ...row,
+        assets: assetRows
+          .filter((a) => a.contentId === row.id)
+          .map(({ filePath: _hidden, ...rest }) => rest),
+        publications: pubRows.filter((p) => p.contentId === row.id),
+      })),
+    }
+  })
 
   app.patch('/api/admin/contents/:id', async (req, reply) => {
     const { id } = req.params as { id: string }
     const body = z
       .object({
-        title: z.string().max(300).optional(),
-        caption: z.string().optional(),
+        code: z.string().min(1).max(120).optional(),
+        title: z.string().max(300).optional().or(z.literal('')).nullable(),
+        caption: z.string().optional().or(z.literal('')).nullable(),
+        contentType: z.enum(['video', 'carousel']).optional(),
         status: z.enum(['DRAFT', 'READY', 'CLAIMED', 'PUBLISHED', 'FAILED']).optional(),
         assignedUserId: z.string().nullable().optional(),
       })
       .safeParse(req.body)
-    if (!body.success) return reply.code(400).send({ error: 'Invalid input' })
+    if (!body.success) return reply.code(400).send({ error: body.error.issues[0]?.message ?? 'Invalid input' })
 
     const existing = db.select().from(contents).where(eq(contents.id, id)).get()
     if (!existing) return reply.code(404).send({ error: 'Not found' })
 
-    db.update(contents).set(body.data).where(eq(contents.id, id)).run()
-    return { content: db.select().from(contents).where(eq(contents.id, id)).get() }
+    const patch: Record<string, unknown> = {}
+    if (body.data.code !== undefined) patch.code = body.data.code.trim()
+    if (body.data.title !== undefined) patch.title = body.data.title?.trim() || null
+    if (body.data.caption !== undefined) patch.caption = body.data.caption?.trim() || null
+    if (body.data.contentType !== undefined) patch.contentType = body.data.contentType
+    if (body.data.status !== undefined) patch.status = body.data.status
+    if (body.data.assignedUserId !== undefined) patch.assignedUserId = body.data.assignedUserId || null
+
+    try {
+      db.update(contents).set(patch).where(eq(contents.id, id)).run()
+      const updated = db.select().from(contents).where(eq(contents.id, id)).get()!
+      const assetRows = db
+        .select()
+        .from(assets)
+        .where(eq(assets.contentId, id))
+        .orderBy(asc(assets.sortOrder))
+        .all()
+        .map(({ filePath: _hidden, ...rest }) => rest)
+      const pubRows = db.select().from(publications).where(eq(publications.contentId, id)).all()
+      return { content: { ...updated, assets: assetRows, publications: pubRows } }
+    } catch (err) {
+      const message = (err as Error).message
+      const conflict = message.includes('UNIQUE') ? `Code "${body.data.code}" already exists` : message
+      return reply.code(400).send({ error: conflict })
+    }
   })
 
   app.delete('/api/admin/contents/:id', async (req, reply) => {

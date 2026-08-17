@@ -208,8 +208,18 @@ export const api = {
       }>,
     ) => request<{ user: User }>(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
-    contents: () => request<{ contents: Omit<Content, 'assets' | 'publications'>[] }>('/api/admin/contents'),
-    updateContent: (id: string, patch: Partial<{ status: ContentStatus; title: string; caption: string }>) =>
+    contents: () => request<{ contents: Content[] }>('/api/admin/contents'),
+    updateContent: (
+      id: string,
+      patch: Partial<{
+        code: string
+        status: ContentStatus
+        title: string | null
+        caption: string | null
+        contentType: 'video' | 'carousel'
+        assignedUserId: string | null
+      }>,
+    ) =>
       request<{ content: Content }>(`/api/admin/contents/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(patch),
