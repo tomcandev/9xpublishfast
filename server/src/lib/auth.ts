@@ -68,6 +68,7 @@ export async function createUser(input: {
   password: string
   displayName?: string
   role?: 'admin' | 'kol'
+  notes?: string | null
 }) {
   const username = input.username.trim().toLowerCase()
   if (!isValidUsername(username)) {
@@ -84,6 +85,7 @@ export async function createUser(input: {
     displayName: input.displayName?.trim() || username,
     role: input.role ?? 'kol',
     active: true,
+    notes: input.notes?.trim() || null,
   }
   db.insert(users).values(user).run()
   return findUserById(user.id)!

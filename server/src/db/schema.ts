@@ -20,6 +20,8 @@ export const users = sqliteTable(
     displayName: text('display_name').notNull(),
     role: text('role', { enum: ROLES }).notNull().default('kol'),
     active: integer('active', { mode: 'boolean' }).notNull().default(true),
+    /** Optional admin notes (e.g. channel links, niche, posting schedule) */
+    notes: text('notes'),
     createdAt: text('created_at').notNull().default(now),
   },
   (t) => [

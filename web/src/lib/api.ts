@@ -9,6 +9,7 @@ export interface User {
   displayName: string
   role: Role
   active: boolean
+  notes?: string | null
   createdAt: string
 }
 
@@ -193,10 +194,18 @@ export const api = {
       email?: string
       displayName?: string
       role: Role
+      notes?: string
     }) => request<{ user: User }>('/api/admin/users', { method: 'POST', body: JSON.stringify(input) }),
     updateUser: (
       id: string,
-      patch: Partial<{ active: boolean; role: Role; password: string; displayName: string; email: string | null }>,
+      patch: Partial<{
+        active: boolean
+        role: Role
+        password: string
+        displayName: string
+        email: string | null
+        notes: string | null
+      }>,
     ) => request<{ user: User }>(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
     contents: () => request<{ contents: Omit<Content, 'assets' | 'publications'>[] }>('/api/admin/contents'),

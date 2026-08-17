@@ -14,6 +14,7 @@ const statements = [
     display_name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'kol',
     active INTEGER NOT NULL DEFAULT 1,
+    notes TEXT,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS users_username_unique ON users (username)`,
@@ -97,6 +98,13 @@ export function migrate() {
   sqlite.exec('BEGIN')
   try {
     for (const stmt of statements) sqlite.exec(stmt)
+
+    // Ensure columns added in updates exist on legacy databases
+    const userCols = sqlite.pragma('table_info(users)') as { name: string }[]
+    if (!userCols.some((c) => c.name === 'notes')) {
+      sqlite.exec('ALTER TABLE users ADD COLUMN notes TEXT')
+    }
+
     sqlite.exec('COMMIT')
   } catch (err) {
     sqlite.exec('ROLLBACK')

@@ -378,7 +378,14 @@ function UsersTab() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [form, setForm] = useState({ username: '', password: '', email: '', displayName: '', role: 'kol' as Role })
+  const [form, setForm] = useState({
+    username: '',
+    password: '',
+    email: '',
+    displayName: '',
+    role: 'kol' as Role,
+    notes: '',
+  })
 
   const load = useCallback(async () => {
     try {
@@ -407,9 +414,10 @@ function UsersTab() {
         email: form.email.trim() || undefined,
         displayName: form.displayName.trim() || undefined,
         role: form.role,
+        notes: form.notes.trim() || undefined,
       })
       setNotice(`Created account "${form.username}".`)
-      setForm({ username: '', password: '', email: '', displayName: '', role: 'kol' })
+      setForm({ username: '', password: '', email: '', displayName: '', role: 'kol', notes: '' })
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Creation failed')
@@ -485,6 +493,18 @@ function UsersTab() {
             </select>
           </div>
         </div>
+
+        <div className="field">
+          <label className="label" htmlFor="u-notes">Notes (optional)</label>
+          <input
+            id="u-notes"
+            className="input"
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            placeholder="e.g. TikTok @handle, niche, schedule, target platforms..."
+          />
+        </div>
+
         <button className="btn btn-primary" disabled={busy}>
           {busy ? 'Creating…' : 'Create User'}
         </button>
@@ -498,6 +518,7 @@ function UsersTab() {
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
+              <th>Notes</th>
               <th>Status</th>
               <th />
             </tr>
@@ -509,6 +530,13 @@ function UsersTab() {
                 <td>{u.displayName}</td>
                 <td className="hint">{u.email || '—'}</td>
                 <td><span className="badge">{u.role}</span></td>
+                <td
+                  style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  className="hint"
+                  title={u.notes || undefined}
+                >
+                  {u.notes ? <span>📝 {u.notes}</span> : '—'}
+                </td>
                 <td>
                   <span className={`badge ${u.active ? 'badge-ready' : ''}`}>
                     {u.active ? 'Active' : 'Disabled'}
@@ -561,6 +589,7 @@ function EditUserModal({
   const [email, setEmail] = useState(user.email || '')
   const [role, setRole] = useState<Role>(user.role)
   const [active, setActive] = useState(user.active)
+  const [notes, setNotes] = useState(user.notes || '')
   const [newPassword, setNewPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -580,6 +609,7 @@ function EditUserModal({
         email: email.trim() || null,
         role,
         active,
+        notes: notes.trim() || null,
         password: newPassword ? newPassword : undefined,
       })
       await onSaved()
@@ -666,6 +696,20 @@ function EditUserModal({
                 <option value="disabled">Disabled</option>
               </select>
             </div>
+          </div>
+
+          <div className="field">
+            <label className="label" htmlFor="edit-notes">
+              Admin Notes (optional)
+            </label>
+            <textarea
+              id="edit-notes"
+              className="textarea"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="e.g. TikTok @handle, niche, posting schedule, target tags..."
+              rows={2}
+            />
           </div>
 
           <div

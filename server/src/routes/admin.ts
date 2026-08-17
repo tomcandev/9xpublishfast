@@ -16,6 +16,7 @@ const userSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   displayName: z.string().max(120).optional(),
   role: z.enum(ROLES).default('kol'),
+  notes: z.string().max(1000).optional(),
 })
 
 export async function adminRoutes(app: FastifyInstance) {
@@ -33,7 +34,11 @@ export async function adminRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? 'Invalid input' })
     }
     try {
-      const user = await createUser({ ...parsed.data, email: parsed.data.email || null })
+      const user = await createUser({
+        ...parsed.data,
+        email: parsed.data.email || null,
+        notes: parsed.data.notes || null,
+      })
       return reply.code(201).send({ user: publicUser(user) })
     } catch (err) {
       const message = (err as Error).message
@@ -53,6 +58,7 @@ export async function adminRoutes(app: FastifyInstance) {
         role: z.enum(ROLES).optional(),
         active: z.boolean().optional(),
         password: z.string().min(8, 'Password must be at least 8 characters').optional().or(z.literal('')),
+        notes: z.string().max(1000).optional().or(z.literal('')).nullable(),
       })
       .safeParse(req.body)
     if (!body.success) return reply.code(400).send({ error: body.error.issues[0]?.message ?? 'Invalid input' })
@@ -60,9 +66,10 @@ export async function adminRoutes(app: FastifyInstance) {
     const existing = db.select().from(users).where(eq(users.id, id)).get()
     if (!existing) return reply.code(404).send({ error: 'Not found' })
 
-    const { password, email, ...rest } = body.data
+    const { password, email, notes, ...rest } = body.data
     const patch: Record<string, unknown> = { ...rest }
     if (email !== undefined) patch.email = email ? email.trim().toLowerCase() : null
+    if (notes !== undefined) patch.notes = notes ? notes.trim() : null
     if (password && password.trim().length > 0) patch.passwordHash = await hashPassword(password)
 
     try {
