@@ -185,20 +185,17 @@ export function Post() {
             assetsList.map(async (a, idx) => {
               const res = await fetch(assetDownloadUrl(a.id))
               const blob = await res.blob()
-              const ext = a.type === 'video' ? 'mp4' : 'jpg'
-              const name = a.originalName || `${content?.code || 'media'}_${idx + 1}.${ext}`
-              return new File([blob], name, {
-                type: a.mime || blob.type || (a.type === 'video' ? 'video/mp4' : 'image/jpeg'),
-              })
+              const isVid = a.type === 'video' || (a.mime && a.mime.startsWith('video/'))
+              const mime = isVid ? 'video/mp4' : (a.mime && a.mime.startsWith('image/') ? a.mime : 'image/jpeg')
+              const ext = isVid ? 'mp4' : (mime.includes('png') ? 'png' : 'jpg')
+              const name = `${content?.code || 'media'}_${idx + 1}.${ext}`
+              return new File([blob], name, { type: mime })
             }),
           )
 
           if (navigator.canShare({ files })) {
-            await navigator.share({
-              title: content?.title || content?.code || 'PublishFast Media',
-              text: content?.caption || undefined,
-              files,
-            })
+            // Share pure files so iOS presents "Save X Images" directly into Camera Roll / Photos
+            await navigator.share({ files })
             setDownloading(false)
             return
           }
@@ -377,10 +374,33 @@ export function Post() {
                   </button>
 
                   {captionCopied && (
-                    <div className="center-note" style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.82rem' }}>
+                    <div className="center-note" style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.82rem', padding: '6px 0' }}>
                       ✓ Caption copied to clipboard!
                     </div>
                   )}
+
+                  {/* Quick App Launcher Buttons */}
+                  <div className="stack" style={{ gap: 6, marginTop: 4 }}>
+                    <div className="row-tight" style={{ flexWrap: 'wrap', gap: 6 }}>
+                      <a
+                        href="snssdk1233://"
+                        className="btn btn-ghost btn-sm"
+                        style={{ flex: '1 1 120px', justifyContent: 'center', fontSize: '0.82rem' }}
+                      >
+                        🎵 Open TikTok
+                      </a>
+                      <a
+                        href="instagram://app"
+                        className="btn btn-ghost btn-sm"
+                        style={{ flex: '1 1 120px', justifyContent: 'center', fontSize: '0.82rem' }}
+                      >
+                        📸 Open Instagram
+                      </a>
+                    </div>
+                    <span className="hint" style={{ fontSize: '0.74rem', opacity: 0.85 }}>
+                      💡 <strong>On iPhone:</strong> In the Share menu, tap <strong>"Save {images.length > 1 ? `${images.length} Images` : 'Media'}"</strong> (🖼️) to save to Photos/Gallery, then tap <strong>Open TikTok</strong>.
+                    </span>
+                  </div>
                 </div>
 
                 <div className="step-split-right">
