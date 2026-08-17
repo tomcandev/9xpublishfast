@@ -107,9 +107,15 @@ export const STATUS_LABELS: Record<ContentStatus, string> = {
 
 export const api = {
   login: (identifier: string, password: string) =>
-    request<{ user: User }>('/api/auth/login', {
+    request<{ user: User; sessionToken?: string }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ identifier, password }),
+    }),
+
+  switchAccount: (sessionToken: string) =>
+    request<{ user: User; sessionToken: string }>('/api/auth/switch', {
+      method: 'POST',
+      body: JSON.stringify({ sessionToken }),
     }),
 
   logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),

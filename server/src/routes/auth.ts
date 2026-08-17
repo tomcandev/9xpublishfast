@@ -9,6 +9,7 @@ import {
   findUserByIdentifier,
   hashPassword,
   publicUser,
+  readSession,
   signSession,
   verifyPassword,
 } from '../lib/auth.js'
@@ -19,6 +20,10 @@ const loginSchema = z.object({
   // Accepts a username ("yoga") or an email — see findUserByIdentifier.
   identifier: z.string().min(1, 'Username or email is required'),
   password: z.string().min(1, 'Password is required'),
+})
+
+const switchSchema = z.object({
+  sessionToken: z.string().min(1, 'Session token is required'),
 })
 
 export async function authRoutes(app: FastifyInstance) {
@@ -45,7 +50,34 @@ export async function authRoutes(app: FastifyInstance) {
       path: '/',
       maxAge: 60 * 60 * 24 * 30,
     })
-    return { user: publicUser(user) }
+    return { user: publicUser(user), sessionToken: token }
+  })
+
+  app.post('/api/auth/switch', async (req, reply) => {
+    const parsed = switchSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? 'Invalid input' })
+    }
+
+    const userId = await readSession(parsed.data.sessionToken)
+    if (!userId) {
+      return reply.code(401).send({ error: 'Session expired or invalid' })
+    }
+
+    const user = findUserById(userId)
+    if (!user || !user.active) {
+      return reply.code(401).send({ error: 'User not found or inactive' })
+    }
+
+    const freshToken = await signSession(user.id)
+    reply.setCookie(SESSION_COOKIE, freshToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: config.isProd,
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30,
+    })
+    return { user: publicUser(user), sessionToken: freshToken }
   })
 
   app.post('/api/auth/logout', async (_req, reply) => {

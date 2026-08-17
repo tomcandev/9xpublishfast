@@ -17,6 +17,7 @@ import { claimContent, claimNext, releaseContent, releaseStaleClaims } from './c
 const userIds: string[] = []
 const contentIds: string[] = []
 let existingReadyIds: string[] = []
+let existingClaimedIds: string[] = []
 
 function makeUser(username: string) {
   const id = randomUUID()
@@ -54,10 +55,15 @@ function makeContent(status: 'READY' | 'DRAFT' = 'READY', assignedUserId?: strin
 
 before(() => {
   migrate()
-  const rows = db.select({ id: contents.id }).from(contents).where(eq(contents.status, 'READY')).all()
-  existingReadyIds = rows.map((r) => r.id)
+  const readyRows = db.select({ id: contents.id }).from(contents).where(eq(contents.status, 'READY')).all()
+  existingReadyIds = readyRows.map((r) => r.id)
   if (existingReadyIds.length) {
     db.update(contents).set({ status: 'DRAFT' }).where(inArray(contents.id, existingReadyIds)).run()
+  }
+  const claimedRows = db.select({ id: contents.id }).from(contents).where(eq(contents.status, 'CLAIMED')).all()
+  existingClaimedIds = claimedRows.map((r) => r.id)
+  if (existingClaimedIds.length) {
+    db.update(contents).set({ status: 'DRAFT' }).where(inArray(contents.id, existingClaimedIds)).run()
   }
 })
 
@@ -66,6 +72,9 @@ after(() => {
   if (userIds.length) db.delete(users).where(inArray(users.id, userIds)).run()
   if (existingReadyIds.length) {
     db.update(contents).set({ status: 'READY' }).where(inArray(contents.id, existingReadyIds)).run()
+  }
+  if (existingClaimedIds.length) {
+    db.update(contents).set({ status: 'CLAIMED' }).where(inArray(contents.id, existingClaimedIds)).run()
   }
   sqlite.close()
 })

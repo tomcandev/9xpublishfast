@@ -379,7 +379,95 @@ tbody tr:last-child td { border-bottom: none; }
 /* ---------- auth ---------- */
 
 .auth-wrap { min-height: 100%; display: grid; place-items: center; padding: 24px; }
-.auth-card { width: 100%; max-width: 380px; }
+.auth-card { width: 100%; max-width: 400px; }
+
+/* ---------- saved accounts list on login ---------- */
+.saved-accounts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.saved-account-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.saved-account-item:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.saved-account-item:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.saved-account-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.saved-account-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.saved-account-name {
+  font-weight: 650;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.saved-account-meta {
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.saved-account-remove {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.saved-account-remove:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
 
 .center-note { text-align: center; color: var(--text-faint); padding: 40px 0; }
 
