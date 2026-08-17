@@ -1,10 +1,13 @@
+import { unlink } from 'node:fs/promises'
+import { join } from 'node:path'
 import type { FastifyInstance } from 'fastify'
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/index.js'
 import { ROLES, apiTokens, assets, contents, publications, users } from '../db/schema.js'
 import { createApiToken, createUser, hashPassword, publicUser } from '../lib/auth.js'
 import { releaseStaleClaims } from '../lib/claim.js'
+import { config } from '../lib/config.js'
 import { requireAdmin } from '../lib/guards.js'
 
 const userSchema = z.object({
@@ -91,14 +94,66 @@ export async function adminRoutes(app: FastifyInstance) {
 
   app.delete('/api/admin/contents/:id', async (req, reply) => {
     const { id } = req.params as { id: string }
-    // assets and publications cascade via foreign keys
+    const assetRows = db
+      .select({ filePath: assets.filePath })
+      .from(assets)
+      .where(eq(assets.contentId, id))
+      .all()
+    for (const a of assetRows) {
+      if (a.filePath) {
+        unlink(join(config.uploadsDir, a.filePath)).catch(() => {})
+      }
+    }
     const result = db.delete(contents).where(eq(contents.id, id)).run()
     if (result.changes === 0) return reply.code(404).send({ error: 'Not found' })
     return { ok: true }
   })
 
+  const bulkDeleteSchema = z.object({
+    ids: z.array(z.string().min(1)).min(1, 'At least one content ID required'),
+  })
+
+  app.post('/api/admin/contents/bulk-delete', async (req, reply) => {
+    const parsed = bulkDeleteSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? 'Invalid input' })
+    }
+    const { ids } = parsed.data
+    const assetRows = db
+      .select({ filePath: assets.filePath })
+      .from(assets)
+      .where(inArray(assets.contentId, ids))
+      .all()
+    for (const a of assetRows) {
+      if (a.filePath) {
+        unlink(join(config.uploadsDir, a.filePath)).catch(() => {})
+      }
+    }
+    const result = db.delete(contents).where(inArray(contents.id, ids)).run()
+    return { deleted: result.changes }
+  })
+
+  const bulkStatusSchema = z.object({
+    ids: z.array(z.string().min(1)).min(1, 'At least one content ID required'),
+    status: z.enum(['DRAFT', 'READY', 'CLAIMED', 'PUBLISHED', 'FAILED']),
+  })
+
+  app.post('/api/admin/contents/bulk-status', async (req, reply) => {
+    const parsed = bulkStatusSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? 'Invalid input' })
+    }
+    const { ids, status } = parsed.data
+    const result = db.update(contents).set({ status }).where(inArray(contents.id, ids)).run()
+    return { updated: result.changes }
+  })
+
   app.delete('/api/admin/assets/:id', async (req, reply) => {
     const { id } = req.params as { id: string }
+    const asset = db.select().from(assets).where(eq(assets.id, id)).get()
+    if (asset?.filePath) {
+      unlink(join(config.uploadsDir, asset.filePath)).catch(() => {})
+    }
     const result = db.delete(assets).where(eq(assets.id, id)).run()
     if (result.changes === 0) return reply.code(404).send({ error: 'Not found' })
     return { ok: true }

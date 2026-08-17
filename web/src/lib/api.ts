@@ -204,6 +204,16 @@ export const api = {
         body: JSON.stringify(patch),
       }),
     deleteContent: (id: string) => request<{ ok: true }>(`/api/admin/contents/${id}`, { method: 'DELETE' }),
+    bulkDeleteContents: (ids: string[]) =>
+      request<{ deleted: number }>('/api/admin/contents/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+      }),
+    bulkUpdateContentStatus: (ids: string[], status: ContentStatus) =>
+      request<{ updated: number }>('/api/admin/contents/bulk-status', {
+        method: 'POST',
+        body: JSON.stringify({ ids, status }),
+      }),
     releaseStale: (hours: number) =>
       request<{ released: number }>('/api/admin/release-stale', {
         method: 'POST',

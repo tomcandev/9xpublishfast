@@ -471,6 +471,29 @@ tbody tr:last-child td { border-bottom: none; }
 
 .center-note { text-align: center; color: var(--text-faint); padding: 40px 0; }
 
+/* ---------- bulk action toolbar ---------- */
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.bulk-action-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
 /* ---------- dropdown menu ---------- */
 .menu-wrap {
   position: relative;

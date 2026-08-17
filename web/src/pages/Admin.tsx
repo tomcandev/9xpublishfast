@@ -38,10 +38,12 @@ export function Admin() {
 
 function ContentsTab() {
   const [items, setItems] = useState<AdminContent[]>([])
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [creating, setCreating] = useState(false)
+  const [busyAction, setBusyAction] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
@@ -65,6 +67,66 @@ function ContentsTab() {
   useEffect(() => {
     void load()
   }, [load])
+
+  function toggleSelectAll() {
+    if (selectedIds.size === items.length && items.length > 0) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(items.map((c) => c.id)))
+    }
+  }
+
+  function toggleSelectOne(id: string) {
+    const updated = new Set(selectedIds)
+    if (updated.has(id)) updated.delete(id)
+    else updated.add(id)
+    setSelectedIds(updated)
+  }
+
+  async function handleBulkDelete() {
+    const count = selectedIds.size
+    if (count === 0) return
+    if (
+      !confirm(
+        `Delete ${count} selected content items? All attached media files and publication links will be permanently deleted.`,
+      )
+    ) {
+      return
+    }
+
+    setBusyAction(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const res = await api.admin.bulkDeleteContents(Array.from(selectedIds))
+      setSelectedIds(new Set())
+      setNotice(`✓ Successfully deleted ${res.deleted} content items.`)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bulk deletion failed')
+    } finally {
+      setBusyAction(false)
+    }
+  }
+
+  async function handleBulkSetStatus(status: ContentStatus) {
+    const count = selectedIds.size
+    if (count === 0) return
+
+    setBusyAction(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const res = await api.admin.bulkUpdateContentStatus(Array.from(selectedIds), status)
+      setSelectedIds(new Set())
+      setNotice(`✓ Updated status to "${status}" for ${res.updated} content items.`)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bulk status update failed')
+    } finally {
+      setBusyAction(false)
+    }
+  }
 
   async function create(e: FormEvent) {
     e.preventDefault()
@@ -109,6 +171,9 @@ function ContentsTab() {
     if (!confirm(`Delete "${code}"? All attached media and links will be permanently removed.`)) return
     try {
       await api.admin.deleteContent(id)
+      const updated = new Set(selectedIds)
+      updated.delete(id)
+      setSelectedIds(updated)
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Deletion failed')
@@ -116,6 +181,8 @@ function ContentsTab() {
   }
 
   if (loading) return <Spinner />
+
+  const allSelected = items.length > 0 && selectedIds.size === items.length
 
   return (
     <div className="stack">
@@ -180,10 +247,62 @@ function ContentsTab() {
         </button>
       </form>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="bulk-action-bar">
+          <div className="bulk-action-info">
+            <span>✓</span>
+            <span>{selectedIds.size} of {items.length} items selected</span>
+          </div>
+          <div className="row-tight" style={{ flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              onClick={() => handleBulkSetStatus('READY')}
+              disabled={busyAction}
+            >
+              Set Ready ({selectedIds.size})
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={() => handleBulkSetStatus('DRAFT')}
+              disabled={busyAction}
+            >
+              Set Draft ({selectedIds.size})
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-danger"
+              onClick={handleBulkDelete}
+              disabled={busyAction}
+            >
+              {busyAction ? 'Deleting…' : `🗑️ Delete Selected (${selectedIds.size})`}
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={() => setSelectedIds(new Set())}
+              disabled={busyAction}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
+              <th style={{ width: 40 }}>
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                  aria-label="Select all content items"
+                />
+              </th>
               <th>Code</th>
               <th>Title</th>
               <th>Status</th>
@@ -192,36 +311,53 @@ function ContentsTab() {
             </tr>
           </thead>
           <tbody>
-            {items.map((c) => (
-              <tr key={c.id}>
-                <td><span className="code">{c.code}</span></td>
-                <td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {c.title || <span className="hint">—</span>}
-                </td>
-                <td><StatusBadge status={c.status} /></td>
-                <td className="hint">{formatDate(c.createdAt)}</td>
-                <td>
-                  <div className="row-tight">
-                    {c.status === 'DRAFT' && (
-                      <button className="btn btn-sm btn-primary" onClick={() => setStatus(c.id, 'READY')}>
-                        Ready
+            {items.map((c) => {
+              const isSelected = selectedIds.has(c.id)
+              return (
+                <tr
+                  key={c.id}
+                  style={{
+                    background: isSelected ? 'var(--accent-soft)' : undefined,
+                    transition: 'background 0.12s ease',
+                  }}
+                >
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectOne(c.id)}
+                      aria-label={`Select ${c.code}`}
+                    />
+                  </td>
+                  <td><span className="code">{c.code}</span></td>
+                  <td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {c.title || <span className="hint">—</span>}
+                  </td>
+                  <td><StatusBadge status={c.status} /></td>
+                  <td className="hint">{formatDate(c.createdAt)}</td>
+                  <td>
+                    <div className="row-tight">
+                      {c.status === 'DRAFT' && (
+                        <button className="btn btn-sm btn-primary" onClick={() => setStatus(c.id, 'READY')}>
+                          Ready
+                        </button>
+                      )}
+                      {c.status === 'READY' && (
+                        <button className="btn btn-sm" onClick={() => setStatus(c.id, 'DRAFT')}>
+                          Draft
+                        </button>
+                      )}
+                      <button className="btn btn-sm btn-danger" onClick={() => remove(c.id, c.code)}>
+                        Delete
                       </button>
-                    )}
-                    {c.status === 'READY' && (
-                      <button className="btn btn-sm" onClick={() => setStatus(c.id, 'DRAFT')}>
-                        Draft
-                      </button>
-                    )}
-                    <button className="btn btn-sm btn-danger" onClick={() => remove(c.id, c.code)}>
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
             {items.length === 0 && (
               <tr>
-                <td colSpan={5} className="hint" style={{ textAlign: 'center', padding: 28 }}>
+                <td colSpan={6} className="hint" style={{ textAlign: 'center', padding: 28 }}>
                   No content items found.
                 </td>
               </tr>
