@@ -378,29 +378,6 @@ export function Post() {
                       ✓ Caption copied to clipboard!
                     </div>
                   )}
-
-                  {/* Quick App Launcher Buttons */}
-                  <div className="stack" style={{ gap: 6, marginTop: 4 }}>
-                    <div className="row-tight" style={{ flexWrap: 'wrap', gap: 6 }}>
-                      <a
-                        href="snssdk1233://"
-                        className="btn btn-ghost btn-sm"
-                        style={{ flex: '1 1 120px', justifyContent: 'center', fontSize: '0.82rem' }}
-                      >
-                        🎵 Open TikTok
-                      </a>
-                      <a
-                        href="instagram://app"
-                        className="btn btn-ghost btn-sm"
-                        style={{ flex: '1 1 120px', justifyContent: 'center', fontSize: '0.82rem' }}
-                      >
-                        📸 Open Instagram
-                      </a>
-                    </div>
-                    <span className="hint" style={{ fontSize: '0.74rem', opacity: 0.85 }}>
-                      💡 <strong>On iPhone:</strong> In the Share menu, tap <strong>"Save {images.length > 1 ? `${images.length} Images` : 'Media'}"</strong> (🖼️) to save to Photos/Gallery, then tap <strong>Open TikTok</strong>.
-                    </span>
-                  </div>
                 </div>
 
                 <div className="step-split-right">
