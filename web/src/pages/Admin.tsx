@@ -423,6 +423,16 @@ function EditContentModal({
   const videos = content.assets ? content.assets.filter((a) => a.type === 'video' || (a.mime && a.mime.startsWith('video/'))) : []
   const images = content.assets ? content.assets.filter((a) => a.type === 'image' || (a.mime && a.mime.startsWith('image/'))) : []
 
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape' && activeImageIndex === null) {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [activeImageIndex, onClose])
+
   async function handleSave(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
@@ -1142,6 +1152,16 @@ function EditUserModal({
   const [newPassword, setNewPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
