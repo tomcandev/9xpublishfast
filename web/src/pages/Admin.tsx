@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Alert, Spinner, StatusBadge, formatDate } from '../components/ui'
-import { api, assetUrl, type Content, type ContentStatus, type Role, type User } from '../lib/api'
+import { api, assetUrl, type Asset, type Content, type ContentStatus, type Role, type User } from '../lib/api'
 
 type Tab = 'contents' | 'users' | 'tokens'
 
@@ -416,6 +416,7 @@ function EditContentModal({
   const [contentType, setContentType] = useState<'video' | 'carousel'>(content.contentType)
   const [status, setStatus] = useState<ContentStatus>(content.status)
   const [assignedUserId, setAssignedUserId] = useState<string>(content.assignedUserId || '')
+  const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -460,247 +461,458 @@ function EditContentModal({
   }
 
   return (
+    <>
+      <div
+        className="modal-overlay"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose()
+        }}
+      >
+        <div className="modal-card stack" style={{ maxWidth: 640, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="row-tight" style={{ gap: 8 }}>
+              <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Review & Edit Content</h2>
+              <span className="code">{content.code}</span>
+            </div>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
+              ✕
+            </button>
+          </div>
+
+          {error && <Alert>{error}</Alert>}
+
+          {/* Media Preview Section */}
+          {content.assets && content.assets.length > 0 && (
+            <div
+              className="stack"
+              style={{
+                padding: 12,
+                background: 'var(--bg)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)',
+                gap: 8,
+              }}
+            >
+              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="label" style={{ fontSize: '0.8rem', fontWeight: 650 }}>
+                  Attached Media ({content.assets.length} file{content.assets.length > 1 ? 's' : ''})
+                </span>
+                <span className="hint" style={{ fontSize: '0.75rem' }}>
+                  {content.contentType === 'carousel' ? '📸 Carousel Slides (tap to enlarge)' : '🎬 Video'}
+                </span>
+              </div>
+
+              {videos.length > 0 && (
+                <div className="stack" style={{ gap: 8 }}>
+                  {videos.map((v) => (
+                    <video
+                      key={v.id}
+                      src={assetUrl(v.id)}
+                      controls
+                      preload="metadata"
+                      playsInline
+                      style={{ maxHeight: 240, width: '100%', borderRadius: 'var(--radius-sm)' }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {images.length > 0 && (
+                <div
+                  className="carousel-scroll-gallery"
+                  style={{
+                    padding: '6px 2px',
+                    overflowX: 'auto',
+                    display: 'flex',
+                    gap: 10,
+                    alignItems: 'center',
+                  }}
+                >
+                  {images.map((img, idx) => (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() => setActiveImageIndex(idx)}
+                      className="carousel-scroll-item"
+                      title={`Slide ${idx + 1}: ${img.originalName} (tap to view full screen)`}
+                      style={{
+                        flexShrink: 0,
+                        position: 'relative',
+                        height: 130,
+                        maxWidth: 180,
+                        minWidth: 70,
+                        padding: 4,
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border)',
+                        background: 'var(--bg-elevated, rgba(0,0,0,0.03))',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'transform 0.15s ease, border-color 0.15s ease',
+                      }}
+                    >
+                      <img
+                        src={assetUrl(img.id)}
+                        alt={img.originalName}
+                        style={{
+                          maxHeight: '100%',
+                          maxWidth: '100%',
+                          width: 'auto',
+                          height: 'auto',
+                          objectFit: 'contain',
+                          display: 'block',
+                          borderRadius: 3,
+                        }}
+                      />
+                      <span
+                        className="carousel-scroll-badge"
+                        style={{
+                          position: 'absolute',
+                          top: 6,
+                          left: 6,
+                          background: 'rgba(0,0,0,0.75)',
+                          color: '#fff',
+                          padding: '1px 6px',
+                          borderRadius: 4,
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        {idx + 1}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Edit Form */}
+          <form className="stack" style={{ gap: 14 }} onSubmit={handleSave}>
+            <div className="row" style={{ gap: 12 }}>
+              <div className="field" style={{ flex: '1 1 140px' }}>
+                <label className="label" htmlFor="edit-code">
+                  Code *
+                </label>
+                <input
+                  id="edit-code"
+                  className="input"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="field" style={{ flex: '1 1 120px' }}>
+                <label className="label" htmlFor="edit-status">
+                  Status
+                </label>
+                <select
+                  id="edit-status"
+                  className="select"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as ContentStatus)}
+                >
+                  <option value="DRAFT">DRAFT</option>
+                  <option value="READY">READY</option>
+                  <option value="CLAIMED">CLAIMED</option>
+                  <option value="PUBLISHED">PUBLISHED</option>
+                  <option value="FAILED">FAILED</option>
+                </select>
+              </div>
+
+              <div className="field" style={{ flex: '1 1 120px' }}>
+                <label className="label" htmlFor="edit-ctype">
+                  Type
+                </label>
+                <select
+                  id="edit-ctype"
+                  className="select"
+                  value={contentType}
+                  onChange={(e) => setContentType(e.target.value as 'video' | 'carousel')}
+                >
+                  <option value="video">Video</option>
+                  <option value="carousel">Carousel</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="field">
+              <label className="label" htmlFor="edit-title">
+                Title
+              </label>
+              <input
+                id="edit-title"
+                className="input"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. PTE Speaking Repeat Sentence Strategy"
+              />
+            </div>
+
+            <div className="field">
+              <label className="label" htmlFor="edit-assigned">
+                Assigned KOL (Optional)
+              </label>
+              <select
+                id="edit-assigned"
+                className="select"
+                value={assignedUserId}
+                onChange={(e) => setAssignedUserId(e.target.value)}
+              >
+                <option value="">-- Open Queue (Any KOL can claim) --</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    @{u.username} ({u.displayName}){u.notes ? ` - ${u.notes}` : ''}
+                  </option>
+                ))}
+              </select>
+              <span className="hint" style={{ fontSize: '0.75rem' }}>
+                If set, only this specific KOL will see and be able to claim this content item.
+              </span>
+            </div>
+
+            <div className="field">
+              <label className="label" htmlFor="edit-caption">
+                Caption & Hashtags
+              </label>
+              <textarea
+                id="edit-caption"
+                className="textarea"
+                rows={4}
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="Caption text with hashtags..."
+              />
+            </div>
+
+            {content.publications && content.publications.length > 0 && (
+              <div className="stack" style={{ gap: 6 }}>
+                <span className="label" style={{ fontSize: '0.8rem' }}>Submitted Proof of Work Links:</span>
+                {content.publications.map((p) => (
+                  <div key={p.id} className="row-tight" style={{ fontSize: '0.82rem' }}>
+                    <span className="badge">{p.platform}</span>
+                    {p.publishedUrl ? (
+                      <a href={p.publishedUrl} target="_blank" rel="noreferrer" className="code" style={{ textDecoration: 'underline' }}>
+                        {p.publishedUrl}
+                      </a>
+                    ) : (
+                      <span className="hint">No link provided</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={handleDelete}
+                disabled={busy}
+              >
+                🗑️ Delete Content
+              </button>
+              <div className="row-tight" style={{ gap: 8 }}>
+                <button type="button" className="btn btn-ghost" onClick={onClose} disabled={busy}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={busy}>
+                  {busy ? 'Saving…' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Lightbox Dialog for Full-Screen Image View */}
+      {activeImageIndex !== null && images.length > 0 && (
+        <ImageLightboxModal
+          images={images}
+          currentIndex={activeImageIndex}
+          onClose={() => setActiveImageIndex(null)}
+          onChangeIndex={(nextIdx) => setActiveImageIndex(nextIdx)}
+        />
+      )}
+    </>
+  )
+}
+
+function ImageLightboxModal({
+  images,
+  currentIndex,
+  onClose,
+  onChangeIndex,
+}: {
+  images: Asset[]
+  currentIndex: number
+  onClose: () => void
+  onChangeIndex: (nextIdx: number) => void
+}) {
+  const current = images[currentIndex]
+  if (!current) return null
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+      else if (e.key === 'ArrowLeft' && currentIndex > 0) {
+        onChangeIndex(currentIndex - 1)
+      } else if (e.key === 'ArrowRight' && currentIndex < images.length - 1) {
+        onChangeIndex(currentIndex + 1)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [currentIndex, images.length, onChangeIndex, onClose])
+
+  return (
     <div
       className="modal-overlay"
+      style={{
+        background: 'rgba(0, 0, 0, 0.9)',
+        zIndex: 1200,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px 8px',
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="modal-card stack" style={{ maxWidth: 620, maxHeight: '90vh', overflowY: 'auto' }}>
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <div className="row-tight" style={{ gap: 8 }}>
-            <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Review & Edit Content</h2>
-            <span className="code">{content.code}</span>
-          </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
-            ✕
-          </button>
-        </div>
-
-        {error && <Alert>{error}</Alert>}
-
-        {/* Media Preview Section */}
-        {content.assets && content.assets.length > 0 && (
-          <div
-            className="stack"
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 900,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          color: '#fff',
+          marginBottom: 10,
+          padding: '0 8px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span
             style={{
-              padding: 12,
-              background: 'var(--bg)',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border)',
-              gap: 8,
+              background: 'rgba(255, 255, 255, 0.22)',
+              padding: '3px 12px',
+              borderRadius: 20,
+              fontSize: '0.82rem',
+              fontWeight: 650,
             }}
           >
-            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <span className="label" style={{ fontSize: '0.8rem', fontWeight: 650 }}>
-                Attached Media ({content.assets.length} file{content.assets.length > 1 ? 's' : ''})
-              </span>
-              <span className="hint" style={{ fontSize: '0.75rem' }}>
-                {content.contentType === 'carousel' ? '📸 Carousel Slides' : '🎬 Video'}
-              </span>
-            </div>
+            Slide {currentIndex + 1} of {images.length}
+          </span>
+          <span style={{ fontSize: '0.85rem', opacity: 0.85 }}>{current.originalName}</span>
+        </div>
+        <button
+          type="button"
+          className="btn btn-sm"
+          style={{
+            background: 'rgba(255, 255, 255, 0.2)',
+            color: '#fff',
+            border: 'none',
+            fontSize: '0.95rem',
+            padding: '4px 12px',
+            cursor: 'pointer',
+          }}
+          onClick={onClose}
+        >
+          ✕ Close
+        </button>
+      </div>
 
-            {videos.length > 0 && (
-              <div className="stack" style={{ gap: 8 }}>
-                {videos.map((v) => (
-                  <video
-                    key={v.id}
-                    src={assetUrl(v.id)}
-                    controls
-                    preload="metadata"
-                    playsInline
-                    style={{ maxHeight: 200, width: '100%', borderRadius: 'var(--radius-sm)' }}
-                  />
-                ))}
-              </div>
-            )}
-
-            {images.length > 0 && (
-              <div
-                className="carousel-scroll-gallery"
-                style={{ padding: '4px 0', overflowX: 'auto', display: 'flex', gap: 8 }}
-              >
-                {images.map((img, idx) => (
-                  <a
-                    key={img.id}
-                    href={assetUrl(img.id)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="carousel-scroll-item"
-                    title={`Slide ${idx + 1}: ${img.originalName} (click for full size)`}
-                    style={{
-                      flexShrink: 0,
-                      position: 'relative',
-                      width: 80,
-                      height: 110,
-                      borderRadius: 'var(--radius-sm)',
-                      overflow: 'hidden',
-                      border: '1px solid var(--border)',
-                    }}
-                  >
-                    <img
-                      src={assetUrl(img.id)}
-                      alt={img.originalName}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                    <span
-                      className="carousel-scroll-badge"
-                      style={{
-                        position: 'absolute',
-                        top: 4,
-                        left: 4,
-                        background: 'rgba(0,0,0,0.75)',
-                        color: '#fff',
-                        padding: '1px 5px',
-                        borderRadius: 4,
-                        fontSize: '0.7rem',
-                      }}
-                    >
-                      {idx + 1}
-                    </span>
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
+      <div
+        style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          maxWidth: '100%',
+          maxHeight: '82vh',
+        }}
+      >
+        {currentIndex > 0 && (
+          <button
+            type="button"
+            className="btn"
+            style={{
+              position: 'absolute',
+              left: 8,
+              zIndex: 10,
+              background: 'rgba(0, 0, 0, 0.65)',
+              color: '#fff',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '50%',
+              width: 44,
+              height: 44,
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.4rem',
+              cursor: 'pointer',
+            }}
+            onClick={(e) => {
+              e.stopPropagation()
+              onChangeIndex(currentIndex - 1)
+            }}
+            title="Previous slide (Left Arrow)"
+          >
+            ‹
+          </button>
         )}
 
-        {/* Edit Form */}
-        <form className="stack" style={{ gap: 14 }} onSubmit={handleSave}>
-          <div className="row" style={{ gap: 12 }}>
-            <div className="field" style={{ flex: '1 1 140px' }}>
-              <label className="label" htmlFor="edit-code">
-                Code *
-              </label>
-              <input
-                id="edit-code"
-                className="input"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                required
-              />
-            </div>
+        <img
+          src={assetUrl(current.id)}
+          alt={current.originalName}
+          style={{
+            maxWidth: '92vw',
+            maxHeight: '80vh',
+            width: 'auto',
+            height: 'auto',
+            objectFit: 'contain',
+            borderRadius: 'var(--radius)',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
 
-            <div className="field" style={{ flex: '1 1 120px' }}>
-              <label className="label" htmlFor="edit-status">
-                Status
-              </label>
-              <select
-                id="edit-status"
-                className="select"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as ContentStatus)}
-              >
-                <option value="DRAFT">DRAFT</option>
-                <option value="READY">READY</option>
-                <option value="CLAIMED">CLAIMED</option>
-                <option value="PUBLISHED">PUBLISHED</option>
-                <option value="FAILED">FAILED</option>
-              </select>
-            </div>
-
-            <div className="field" style={{ flex: '1 1 120px' }}>
-              <label className="label" htmlFor="edit-ctype">
-                Type
-              </label>
-              <select
-                id="edit-ctype"
-                className="select"
-                value={contentType}
-                onChange={(e) => setContentType(e.target.value as 'video' | 'carousel')}
-              >
-                <option value="video">Video</option>
-                <option value="carousel">Carousel</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="field">
-            <label className="label" htmlFor="edit-title">
-              Title
-            </label>
-            <input
-              id="edit-title"
-              className="input"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. PTE Speaking Repeat Sentence Strategy"
-            />
-          </div>
-
-          <div className="field">
-            <label className="label" htmlFor="edit-assigned">
-              Assigned KOL (Optional)
-            </label>
-            <select
-              id="edit-assigned"
-              className="select"
-              value={assignedUserId}
-              onChange={(e) => setAssignedUserId(e.target.value)}
-            >
-              <option value="">-- Open Queue (Any KOL can claim) --</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  @{u.username} ({u.displayName}){u.notes ? ` - ${u.notes}` : ''}
-                </option>
-              ))}
-            </select>
-            <span className="hint" style={{ fontSize: '0.75rem' }}>
-              If set, only this specific KOL will see and be able to claim this content item.
-            </span>
-          </div>
-
-          <div className="field">
-            <label className="label" htmlFor="edit-caption">
-              Caption & Hashtags
-            </label>
-            <textarea
-              id="edit-caption"
-              className="textarea"
-              rows={4}
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder="Caption text with hashtags..."
-            />
-          </div>
-
-          {content.publications && content.publications.length > 0 && (
-            <div className="stack" style={{ gap: 6 }}>
-              <span className="label" style={{ fontSize: '0.8rem' }}>Submitted Proof of Work Links:</span>
-              {content.publications.map((p) => (
-                <div key={p.id} className="row-tight" style={{ fontSize: '0.82rem' }}>
-                  <span className="badge">{p.platform}</span>
-                  {p.publishedUrl ? (
-                    <a href={p.publishedUrl} target="_blank" rel="noreferrer" className="code" style={{ textDecoration: 'underline' }}>
-                      {p.publishedUrl}
-                    </a>
-                  ) : (
-                    <span className="hint">No link provided</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
-              onClick={handleDelete}
-              disabled={busy}
-            >
-              🗑️ Delete Content
-            </button>
-            <div className="row-tight" style={{ gap: 8 }}>
-              <button type="button" className="btn btn-ghost" onClick={onClose} disabled={busy}>
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={busy}>
-                {busy ? 'Saving…' : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-        </form>
+        {currentIndex < images.length - 1 && (
+          <button
+            type="button"
+            className="btn"
+            style={{
+              position: 'absolute',
+              right: 8,
+              zIndex: 10,
+              background: 'rgba(0, 0, 0, 0.65)',
+              color: '#fff',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '50%',
+              width: 44,
+              height: 44,
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.4rem',
+              cursor: 'pointer',
+            }}
+            onClick={(e) => {
+              e.stopPropagation()
+              onChangeIndex(currentIndex + 1)
+            }}
+            title="Next slide (Right Arrow)"
+          >
+            ›
+          </button>
+        )}
       </div>
     </div>
   )
