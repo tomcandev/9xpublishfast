@@ -172,6 +172,10 @@ Content-Type: multipart/form-data (field: file)
 ## Engineering Rules for AI Collaborators
 
 * **Strict English Codebase Standard**: All code, features, variable names, functions, comments, UI text, labels, user-facing copy, error messages, docs, and git commit messages MUST be written strictly in English. Only direct conversational communication/replies with the user may be in Vietnamese.
+* **Content Moderation & Soft Archival**: When addressing underperforming, duplicate, or flagged posts in the queue, prefer setting `status = 'DRAFT'` (soft-archiving/hiding from KOL queues) rather than hard-deleting immediately, so historical logs and proof-of-work audits are preserved.
+* **Content Generation Hook Quality Standards**:
+  - Focus on high-intent, high-value hooks: Score transformations (e.g. "From 58 to 88"), high-scoring question types (Write From Dictation, Repeat Sentence), mistake diagnostics, and concrete urgency game plans.
+  - Avoid vague, generic, or low-CTR conversational hooks (e.g., avoid "Boss: Can we talk?").
 * Always preserve atomic CAS patterns for any state transitions
 * Keep all dependencies strictly MIT or Apache-2.0
 * Maintain route-level permission checks for all new endpoints
