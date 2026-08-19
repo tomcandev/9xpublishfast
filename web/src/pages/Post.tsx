@@ -36,6 +36,7 @@ export function Post() {
   const [captionCopied, setCaptionCopied] = useState(false)
   const [mode, setMode] = useState<'auto' | 'manual'>('auto')
   const debounceTimers = useRef<Partial<Record<Platform, NodeJS.Timeout>>>({})
+  const preloadedFilesRef = useRef<File[] | null>(null)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -57,6 +58,41 @@ export function Post() {
   useEffect(() => {
     void load()
   }, [load])
+
+  // Preload media assets immediately into memory so iOS Safari transient user gesture never times out
+  useEffect(() => {
+    if (!content?.assets?.length) {
+      preloadedFilesRef.current = null
+      return
+    }
+    let cancelled = false
+    const assetsList = content.assets
+
+    void (async () => {
+      try {
+        const files = await Promise.all(
+          assetsList.map(async (a, idx) => {
+            const res = await fetch(assetDownloadUrl(a.id))
+            const blob = await res.blob()
+            const isVid = a.type === 'video' || (a.mime && a.mime.startsWith('video/'))
+            const mime = isVid ? 'video/mp4' : a.mime && a.mime.startsWith('image/') ? a.mime : 'image/jpeg'
+            const ext = isVid ? 'mp4' : mime.includes('png') ? 'png' : 'jpg'
+            const name = `${content.code || 'media'}_${idx + 1}.${ext}`
+            return new File([blob], name, { type: mime })
+          }),
+        )
+        if (!cancelled) {
+          preloadedFilesRef.current = files
+        }
+      } catch (err) {
+        console.warn('Media preload warning:', err)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [content?.assets, content?.code])
 
   const doSaveLink = useCallback(
     async (platform: Platform, url: string) => {
@@ -181,17 +217,22 @@ export function Post() {
 
       if (isSharingSupported) {
         try {
-          const files = await Promise.all(
-            assetsList.map(async (a, idx) => {
-              const res = await fetch(assetDownloadUrl(a.id))
-              const blob = await res.blob()
-              const isVid = a.type === 'video' || (a.mime && a.mime.startsWith('video/'))
-              const mime = isVid ? 'video/mp4' : (a.mime && a.mime.startsWith('image/') ? a.mime : 'image/jpeg')
-              const ext = isVid ? 'mp4' : (mime.includes('png') ? 'png' : 'jpg')
-              const name = `${content?.code || 'media'}_${idx + 1}.${ext}`
-              return new File([blob], name, { type: mime })
-            }),
-          )
+          // Use preloaded in-memory files if ready to preserve transient user activation on iOS Safari
+          let files = preloadedFilesRef.current
+          if (!files || files.length !== assetsList.length) {
+            files = await Promise.all(
+              assetsList.map(async (a, idx) => {
+                const res = await fetch(assetDownloadUrl(a.id))
+                const blob = await res.blob()
+                const isVid = a.type === 'video' || (a.mime && a.mime.startsWith('video/'))
+                const mime = isVid ? 'video/mp4' : (a.mime && a.mime.startsWith('image/') ? a.mime : 'image/jpeg')
+                const ext = isVid ? 'mp4' : (mime.includes('png') ? 'png' : 'jpg')
+                const name = `${content?.code || 'media'}_${idx + 1}.${ext}`
+                return new File([blob], name, { type: mime })
+              }),
+            )
+            preloadedFilesRef.current = files
+          }
 
           if (navigator.canShare({ files })) {
             // Share pure files so iOS presents "Save X Images" directly into Camera Roll / Photos
@@ -208,10 +249,10 @@ export function Post() {
         }
       }
 
-      // Fallback: direct download separate files
+      // Fallback: direct download separate files (desktop / unsupported browsers)
       await handleDownloadAllSeparate(assetsList)
     },
-    [content?.caption, content?.code, content?.title, handleDownloadAllSeparate],
+    [content?.code, handleDownloadAllSeparate],
   )
 
   const handleAutoShareAndCopy = useCallback(
