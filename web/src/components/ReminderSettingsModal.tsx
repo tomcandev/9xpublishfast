@@ -370,11 +370,32 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
                         : '🔔 Enable Push on this device'}
                   </button>
                 ) : (
-                  <span className="badge" style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>
-                    Browser does not support Web Push
+                  <span className="badge" style={{ background: 'var(--border)', color: 'var(--text-soft)' }}>
+                    Requires Home Screen PWA
                   </span>
                 )}
               </div>
+
+              {!isPushSupported() && (
+                <div
+                  style={{
+                    padding: '10px 12px',
+                    background: 'var(--surface-hover)',
+                    border: '1px solid var(--border-strong)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.82rem',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <strong style={{ display: 'block', marginBottom: 4 }}>📲 How to enable Push on iPhone / iPad:</strong>
+                  Apple requires web apps to be added to your Home Screen before Push Notifications can be activated:
+                  <ol style={{ margin: '6px 0 0 18px', padding: 0 }}>
+                    <li>Tap Safari's <strong>Share</strong> button (📤) at the bottom.</li>
+                    <li>Select <strong>"Add to Home Screen"</strong> (Thêm vào MH chính).</li>
+                    <li>Open <strong>PublishFast</strong> from your Home Screen icon and enable notifications!</li>
+                  </ol>
+                </div>
+              )}
 
               <div className="row" style={{ gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
                 {hasSubscription && (
@@ -415,11 +436,6 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
                   ⚠️ <strong>Notifications blocked:</strong> Tap the 🔒 / ⚙️ icon on Chrome's address bar ➔ <strong>Permissions</strong> ➔ Set Notifications to <strong>"Allow"</strong> or <strong>"Reset permissions"</strong>, then reload this page.
                 </div>
               )}
-
-              <p className="hint" style={{ fontSize: '0.75rem', margin: 0, opacity: 0.85 }}>
-                💡 <strong>Tip for iPhone users:</strong> Open Safari ➔ Tap the Share button ➔ Select{' '}
-                <strong>"Add to Home Screen"</strong> to receive lock screen push notifications just like a native app.
-              </p>
             </div>
 
             {/* ---- Action Buttons ---- */}

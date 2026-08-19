@@ -1,0 +1,17 @@
+{
+  "name": "PublishFast",
+  "short_name": "PublishFast",
+  "description": "Manual-first content distribution queue for social video & carousels",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#09090b",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
