@@ -16,18 +16,23 @@ function initVapidKeys(): VapidKeys {
 
     const vapidFilePath = path.join(config.dataDir, 'vapid.json')
 
+  const defaultEmail = process.env.VAPID_EMAIL || 'mailto:support@tomcan.dev'
+
   // 1. Check environment variables
   if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
     vapidKeys = {
       publicKey: process.env.VAPID_PUBLIC_KEY,
       privateKey: process.env.VAPID_PRIVATE_KEY,
-      contactEmail: process.env.VAPID_EMAIL || 'mailto:admin@publishfast.local',
+      contactEmail: defaultEmail,
     }
   } else if (fs.existsSync(vapidFilePath)) {
     // 2. Load from persisted file
     try {
       const data = JSON.parse(fs.readFileSync(vapidFilePath, 'utf-8'))
-      vapidKeys = data
+      vapidKeys = {
+        ...data,
+        contactEmail: data.contactEmail?.includes('.local') ? defaultEmail : data.contactEmail || defaultEmail,
+      }
     } catch {
       // ignore
     }
@@ -39,7 +44,7 @@ function initVapidKeys(): VapidKeys {
     vapidKeys = {
       publicKey: generated.publicKey,
       privateKey: generated.privateKey,
-      contactEmail: 'mailto:admin@publishfast.local',
+      contactEmail: defaultEmail,
     }
     try {
       fs.mkdirSync(config.dataDir, { recursive: true })
