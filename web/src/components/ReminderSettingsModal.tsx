@@ -230,112 +230,6 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
               </label>
             </div>
 
-            {/* ---- Device Web Push Section (Prominent at Top) ---- */}
-            <div
-              className="stack"
-              style={{
-                gap: 10,
-                padding: '14px',
-                background: 'var(--bg)',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                <div>
-                  <strong style={{ fontSize: '0.92rem', display: 'block' }}>
-                    📱 Connect Push Notifications to this device
-                  </strong>
-                  <span className="hint" style={{ fontSize: '0.78rem' }}>
-                    {subscriptionCount > 0
-                      ? `${subscriptionCount} device(s) currently registered for push notifications`
-                      : 'No devices registered yet'}
-                  </span>
-                </div>
-
-                {isPushSupported() ? (
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${hasSubscription ? 'btn-ghost' : 'btn-primary'}`}
-                    onClick={handleToggleDevicePush}
-                    disabled={subscribing}
-                    style={{ minWidth: 150 }}
-                  >
-                    {subscribing
-                      ? 'Processing…'
-                      : hasSubscription
-                        ? 'Disable on this device'
-                        : '🔔 Enable Push on this device'}
-                  </button>
-                ) : (
-                  <span className="badge" style={{ background: 'var(--border)', color: 'var(--text-soft)' }}>
-                    Requires Home Screen PWA
-                  </span>
-                )}
-              </div>
-
-              {!isPushSupported() && (
-                <div
-                  style={{
-                    padding: '10px 12px',
-                    background: 'var(--surface-hover)',
-                    border: '1px solid var(--border-strong)',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.82rem',
-                    lineHeight: 1.5,
-                  }}
-                >
-                  <strong style={{ display: 'block', marginBottom: 4 }}>📲 How to enable Push on iPhone / iPad:</strong>
-                  Apple requires web apps to be added to your Home Screen before Push Notifications can be activated:
-                  <ol style={{ margin: '6px 0 0 18px', padding: 0 }}>
-                    <li>Tap Safari's <strong>Share</strong> button (📤) at the bottom.</li>
-                    <li>Select <strong>"Add to Home Screen"</strong> (Thêm vào MH chính).</li>
-                    <li>Open <strong>PublishFast</strong> from your Home Screen icon and enable notifications!</li>
-                  </ol>
-                </div>
-              )}
-
-              <div className="row" style={{ gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-                {hasSubscription && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={handleTestPush}
-                    disabled={testing || busy}
-                  >
-                    {testing ? '⏳ Sending…' : '🧪 Send Test Push Notification'}
-                  </button>
-                )}
-                {subscriptionCount > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={handleResetAllDevices}
-                    disabled={busy}
-                    style={{ color: 'var(--text-soft)' }}
-                    title="Disconnect old/inactive devices and reset push tokens"
-                  >
-                    🔄 Reset All Registered Devices
-                  </button>
-                )}
-              </div>
-
-              {permission === 'denied' && (
-                <div
-                  style={{
-                    padding: '8px 10px',
-                    background: 'var(--danger-soft)',
-                    color: 'var(--danger)',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.78rem',
-                    lineHeight: 1.4,
-                  }}
-                >
-                  ⚠️ <strong>Notifications blocked:</strong> Tap the 🔒 / ⚙️ icon on Chrome's address bar ➔ <strong>Permissions</strong> ➔ Set Notifications to <strong>"Allow"</strong> or <strong>"Reset permissions"</strong>, then reload this page.
-                </div>
-              )}
-            </div>
-
             {/* ---- Time Selection ---- */}
             {enabled && (
               <div className="stack" style={{ gap: 12 }}>
@@ -438,6 +332,111 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
                 </div>
               </div>
             )}
+
+            {/* ---- Device Web Push Section ---- */}
+            <div
+              className="stack"
+              style={{
+                gap: 10,
+                padding: '14px',
+                background: 'var(--bg)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <strong style={{ fontSize: '0.92rem', display: 'block' }}>
+                    📱 Connect Push Notifications to this device
+                  </strong>
+                  <span className="hint" style={{ fontSize: '0.78rem' }}>
+                    {subscriptionCount > 0
+                      ? `${subscriptionCount} device(s) currently registered for push notifications`
+                      : 'No devices registered yet'}
+                  </span>
+                </div>
+
+                {isPushSupported() ? (
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${hasSubscription ? 'btn-ghost' : 'btn-primary'}`}
+                    onClick={handleToggleDevicePush}
+                    disabled={subscribing}
+                  >
+                    {subscribing
+                      ? 'Processing…'
+                      : hasSubscription
+                        ? 'Disable on this device'
+                        : '🔔 Enable Push on this device'}
+                  </button>
+                ) : (
+                  <span className="badge" style={{ background: 'var(--border)', color: 'var(--text-soft)' }}>
+                    Requires Home Screen PWA
+                  </span>
+                )}
+              </div>
+
+              {!isPushSupported() && (
+                <div
+                  style={{
+                    padding: '10px 12px',
+                    background: 'var(--surface-hover)',
+                    border: '1px solid var(--border-strong)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.82rem',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <strong style={{ display: 'block', marginBottom: 4 }}>📲 How to enable Push on iPhone / iPad:</strong>
+                  Apple requires web apps to be added to your Home Screen before Push Notifications can be activated:
+                  <ol style={{ margin: '6px 0 0 18px', padding: 0 }}>
+                    <li>Tap Safari's <strong>Share</strong> button (📤) at the bottom.</li>
+                    <li>Select <strong>"Add to Home Screen"</strong> (Thêm vào MH chính).</li>
+                    <li>Open <strong>PublishFast</strong> from your Home Screen icon and enable notifications!</li>
+                  </ol>
+                </div>
+              )}
+
+              <div className="row" style={{ gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                {hasSubscription && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={handleTestPush}
+                    disabled={testing || busy}
+                  >
+                    {testing ? '⏳ Sending…' : '🧪 Send Test Push Notification'}
+                  </button>
+                )}
+                {subscriptionCount > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={handleResetAllDevices}
+                    disabled={busy}
+                    style={{ color: 'var(--text-soft)' }}
+                    title="Disconnect old/inactive devices and reset push tokens"
+                  >
+                    🔄 Reset All Registered Devices
+                  </button>
+                )}
+              </div>
+
+              {permission === 'denied' && (
+                <div
+                  style={{
+                    padding: '8px 10px',
+                    background: 'var(--danger-soft)',
+                    color: 'var(--danger)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.78rem',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  ⚠️ <strong>Notifications blocked:</strong> Tap the 🔒 / ⚙️ icon on Chrome's address bar ➔ <strong>Permissions</strong> ➔ Set Notifications to <strong>"Allow"</strong> or <strong>"Reset permissions"</strong>, then reload this page.
+                </div>
+              )}
+            </div>
 
             {/* ---- Action Buttons ---- */}
             <div className="row" style={{ justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
