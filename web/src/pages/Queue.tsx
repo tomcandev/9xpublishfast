@@ -16,32 +16,110 @@ export function Queue() {
   const [available, setAvailable] = useState<Content[]>([])
   const [historyItems, setHistoryItems] = useState<Content[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [pullDistance, setPullDistance] = useState(0)
+  const [touchStartY, setTouchStartY] = useState<number | null>(null)
   const [claimingId, setClaimingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showReminderModal, setShowReminderModal] = useState(false)
 
-  const load = useCallback(async () => {
-    try {
-      const [s, claimedList, readyList, hist] = await Promise.all([
-        api.stats(),
-        api.contents('CLAIMED'),
-        api.contents('READY'),
-        api.history(),
-      ])
-      setStats(s)
-      setMine(claimedList.contents.filter((c) => c.claimedBy === user?.id))
-      setAvailable(readyList.contents.slice(0, 5))
-      setHistoryItems(hist.contents)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data')
-    } finally {
-      setLoading(false)
-    }
-  }, [user?.id])
+  const load = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true)
+      try {
+        const [s, claimedList, readyList, hist] = await Promise.all([
+          api.stats(),
+          api.contents('CLAIMED'),
+          api.contents('READY'),
+          api.history(),
+        ])
+        setStats(s)
+        setMine(claimedList.contents.filter((c) => c.claimedBy === user?.id))
+        setAvailable(readyList.contents.slice(0, 5))
+        setHistoryItems(hist.contents)
+        setError(null)
+      } catch (err) {
+        if (!silent) {
+          setError(err instanceof Error ? err.message : 'Failed to load data')
+        }
+      } finally {
+        setLoading(false)
+        setRefreshing(false)
+        setPullDistance(0)
+      }
+    },
+    [user?.id],
+  )
 
   useEffect(() => {
     void load()
   }, [load])
+
+  // 1. Auto-refresh whenever user returns to app or browser tab gains focus
+  useEffect(() => {
+    function onVisibilityOrFocus() {
+      if (document.visibilityState === 'visible') {
+        void load(true)
+      }
+    }
+    window.addEventListener('visibilitychange', onVisibilityOrFocus)
+    window.addEventListener('focus', onVisibilityOrFocus)
+    return () => {
+      window.removeEventListener('visibilitychange', onVisibilityOrFocus)
+      window.removeEventListener('focus', onVisibilityOrFocus)
+    }
+  }, [load])
+
+  // 2. Real-time background sync polling every 15s to keep queue synchronized across KOLs
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible' && !document.hidden) {
+        void load(true)
+      }
+    }, 15000)
+    return () => clearInterval(timer)
+  }, [load])
+
+  // 3. Touch pull-to-refresh handlers for PWA / Mobile
+  function handleTouchStart(e: React.TouchEvent) {
+    if (window.scrollY <= 0 && e.touches[0]) {
+      setTouchStartY(e.touches[0].clientY)
+    } else {
+      setTouchStartY(null)
+    }
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    if (touchStartY === null || refreshing || !e.touches[0]) return
+    if (window.scrollY <= 0) {
+      const currentY = e.touches[0].clientY
+      const diff = currentY - touchStartY
+      if (diff > 0) {
+        const dist = Math.min(75, Math.pow(diff, 0.85))
+        setPullDistance(dist)
+      }
+    } else {
+      setPullDistance(0)
+    }
+  }
+
+  function handleTouchEnd() {
+    if (pullDistance > 45 && !refreshing) {
+      setRefreshing(true)
+      setPullDistance(44)
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try {
+          navigator.vibrate(12)
+        } catch {
+          // ignore
+        }
+      }
+      void load(true)
+    } else {
+      setPullDistance(0)
+    }
+    setTouchStartY(null)
+  }
 
   async function handleClaim(id: string) {
     setClaimingId(id)
@@ -51,7 +129,7 @@ export function Queue() {
       navigate(`/post/${content.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to claim post')
-      void load()
+      void load(true)
     } finally {
       setClaimingId(null)
     }
@@ -64,7 +142,40 @@ export function Queue() {
   if (loading) return <Spinner />
 
   return (
-    <div className="page stack" style={{ paddingBottom: 88 }}>
+    <div
+      className="page stack"
+      style={{ paddingBottom: 88 }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull-to-refresh Indicator */}
+      <div
+        className={`pull-refresh-indicator ${refreshing ? 'refreshing' : ''}`}
+        style={{
+          height: refreshing ? 44 : pullDistance,
+          opacity: refreshing ? 1 : Math.min(1, pullDistance / 35),
+          marginBottom: refreshing || pullDistance > 0 ? 8 : 0,
+        }}
+      >
+        {refreshing ? (
+          <>
+            <span className="pull-refresh-spinner" />
+            <span>Refreshing queue…</span>
+          </>
+        ) : pullDistance > 45 ? (
+          <>
+            <span>↑</span>
+            <span>Release to refresh</span>
+          </>
+        ) : (
+          <>
+            <span>↓</span>
+            <span>Pull down to refresh</span>
+          </>
+        )}
+      </div>
+
       {error && <Alert>{error}</Alert>}
 
       {/* Reminder Banner */}
