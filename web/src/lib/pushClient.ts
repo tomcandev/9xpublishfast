@@ -15,12 +15,13 @@ export function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 export function isPushSupported(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    'serviceWorker' in navigator &&
-    'PushManager' in window &&
-    'Notification' in window
-  )
+  if (typeof window === 'undefined') return false
+  const hasSW = 'serviceWorker' in navigator
+  const hasNotification = 'Notification' in window
+  const hasPush =
+    'PushManager' in window ||
+    (typeof ServiceWorkerRegistration !== 'undefined' && 'pushManager' in ServiceWorkerRegistration.prototype)
+  return Boolean(hasSW && hasNotification && hasPush)
 }
 
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
