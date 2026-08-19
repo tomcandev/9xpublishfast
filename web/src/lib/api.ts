@@ -31,6 +31,12 @@ export interface Publication {
   status: string
   publishedUrl: string | null
   publishedAt: string | null
+  views?: number
+  likes?: number
+  comments?: number
+  shares?: number
+  lastCheckedAt?: string | null
+  metricError?: string | null
 }
 
 export interface Content {
@@ -43,9 +49,47 @@ export interface Content {
   assignedUserId: string | null
   claimedBy: string | null
   claimedAt: string | null
+  hookId?: string | null
   createdAt: string
   assets: Asset[]
   publications: Publication[]
+}
+
+export interface HookPerformanceItem {
+  hookId: string
+  title: string
+  category: string
+  totalPosts: number
+  totalViews: number
+  totalLikes: number
+  avgViews: number
+  topPostUrl?: string
+  status: 'viral' | 'good' | 'average' | 'underperforming' | 'new'
+  recommendation: string
+}
+
+export interface MetricSummary {
+  summary: {
+    totalPublications: number
+    totalViews: number
+    totalLikes: number
+    avgViewsPerPost: number
+  }
+  hooks: HookPerformanceItem[]
+  posts: Array<{
+    publicationId: string
+    contentId: string
+    code: string
+    title: string
+    hookId: string
+    platform: Platform
+    publishedUrl: string
+    publishedAt: string | null
+    views: number
+    likes: number
+    comments: number
+    lastCheckedAt: string | null
+  }>
 }
 
 export interface Stats {
@@ -267,6 +311,21 @@ export const api = {
       if (!res.ok) throw new ApiError(data.error ?? 'Upload failed', res.status)
       return data as { assets: Asset[] }
     },
+
+    metrics: () => request<MetricSummary>('/api/admin/metrics'),
+    syncMetrics: () =>
+      request<{ totalChecked: number; updated: number; errors: number; summary: MetricSummary }>(
+        '/api/admin/metrics/sync',
+        { method: 'POST' },
+      ),
+    updatePublicationMetrics: (
+      id: string,
+      patch: { views?: number; likes?: number; comments?: number; shares?: number },
+    ) =>
+      request<{ publication: Publication }>(`/api/admin/publications/${id}/metrics`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      }),
   },
 }
 

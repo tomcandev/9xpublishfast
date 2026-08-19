@@ -339,6 +339,30 @@ a { color: var(--accent); text-underline-offset: 2px; }
   font-size: 0.9rem;
 }
 
+/* ---------- stats & analytics ---------- */
+.grid-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.stat-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.stat-label {
+  font-size: 0.8rem;
+  font-weight: 560;
+  color: var(--text-soft);
+}
+
 /* ---------- list ---------- */
 
 .list { display: flex; flex-direction: column; gap: 10px; }

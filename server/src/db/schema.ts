@@ -43,6 +43,8 @@ export const contents = sqliteTable(
     assignedUserId: text('assigned_user_id').references(() => users.id, { onDelete: 'set null' }),
     claimedBy: text('claimed_by').references(() => users.id, { onDelete: 'set null' }),
     claimedAt: text('claimed_at'),
+    /** Optional hook identifier from marketing templates (e.g. h_score_01) */
+    hookId: text('hook_id'),
     createdAt: text('created_at').notNull().default(now),
   },
   (t) => [
@@ -50,6 +52,7 @@ export const contents = sqliteTable(
     // The claim query filters on status and orders by created_at.
     index('contents_status_created_idx').on(t.status, t.createdAt),
     index('contents_claimed_by_idx').on(t.claimedBy),
+    index('contents_hook_id_idx').on(t.hookId),
   ],
 )
 
@@ -88,6 +91,12 @@ export const publications = sqliteTable(
       .default('PUBLISHED'),
     publishedUrl: text('published_url'),
     publishedAt: text('published_at'),
+    views: integer('views').notNull().default(0),
+    likes: integer('likes').notNull().default(0),
+    comments: integer('comments').notNull().default(0),
+    shares: integer('shares').notNull().default(0),
+    lastCheckedAt: text('last_checked_at'),
+    metricError: text('metric_error'),
     createdAt: text('created_at').notNull().default(now),
   },
   (t) => [

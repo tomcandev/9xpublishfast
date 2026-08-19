@@ -9,6 +9,7 @@ import { createApiToken, createUser, hashPassword, publicUser } from '../lib/aut
 import { releaseStaleClaims } from '../lib/claim.js'
 import { config } from '../lib/config.js'
 import { requireAdmin } from '../lib/guards.js'
+import { getHookPerformanceSummary, syncAllPublicationMetrics } from '../lib/metrics.js'
 
 const userSchema = z.object({
   username: z.string().min(2).max(31),
@@ -261,4 +262,45 @@ export async function adminRoutes(app: FastifyInstance) {
   app.get('/api/admin/publications', async () => ({
     publications: db.select().from(publications).orderBy(desc(publications.createdAt)).limit(500).all(),
   }))
+
+  /* ---------- Social Metrics & Hook Analytics ---------- */
+
+  app.get('/api/admin/metrics', async () => {
+    return getHookPerformanceSummary()
+  })
+
+  app.post('/api/admin/metrics/sync', async () => {
+    const result = await syncAllPublicationMetrics()
+    const summary = getHookPerformanceSummary()
+    return { ...result, summary }
+  })
+
+  app.patch('/api/admin/publications/:id/metrics', async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const body = z
+      .object({
+        views: z.number().int().min(0).optional(),
+        likes: z.number().int().min(0).optional(),
+        comments: z.number().int().min(0).optional(),
+        shares: z.number().int().min(0).optional(),
+      })
+      .safeParse(req.body)
+
+    if (!body.success) {
+      return reply.code(400).send({ error: 'Invalid metrics data' })
+    }
+
+    const existing = db.select().from(publications).where(eq(publications.id, id)).get()
+    if (!existing) return reply.code(404).send({ error: 'Publication not found' })
+
+    db.update(publications)
+      .set({
+        ...body.data,
+        lastCheckedAt: new Date().toISOString(),
+      })
+      .where(eq(publications.id, id))
+      .run()
+
+    return { publication: db.select().from(publications).where(eq(publications.id, id)).get() }
+  })
 }

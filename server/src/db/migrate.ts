@@ -30,11 +30,13 @@ const statements = [
     assigned_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
     claimed_by TEXT REFERENCES users(id) ON DELETE SET NULL,
     claimed_at TEXT,
+    hook_id TEXT,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS contents_code_unique ON contents (code)`,
   `CREATE INDEX IF NOT EXISTS contents_status_created_idx ON contents (status, created_at)`,
   `CREATE INDEX IF NOT EXISTS contents_claimed_by_idx ON contents (claimed_by)`,
+  `CREATE INDEX IF NOT EXISTS contents_hook_id_idx ON contents (hook_id)`,
 
   `CREATE TABLE IF NOT EXISTS assets (
     id TEXT PRIMARY KEY,
@@ -57,6 +59,12 @@ const statements = [
     status TEXT NOT NULL DEFAULT 'PUBLISHED',
     published_url TEXT,
     published_at TEXT,
+    views INTEGER NOT NULL DEFAULT 0,
+    likes INTEGER NOT NULL DEFAULT 0,
+    comments INTEGER NOT NULL DEFAULT 0,
+    shares INTEGER NOT NULL DEFAULT 0,
+    last_checked_at TEXT,
+    metric_error TEXT,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
   )`,
   `CREATE INDEX IF NOT EXISTS publications_content_idx ON publications (content_id)`,
@@ -97,12 +105,49 @@ const statements = [
 export function migrate() {
   sqlite.exec('BEGIN')
   try {
-    for (const stmt of statements) sqlite.exec(stmt)
+    // 1. Create tables first
+    for (const stmt of statements) {
+      if (!stmt.startsWith('CREATE INDEX') && !stmt.startsWith('CREATE UNIQUE INDEX')) {
+        sqlite.exec(stmt)
+      }
+    }
 
-    // Ensure columns added in updates exist on legacy databases
+    // 2. Ensure columns added in updates exist on legacy databases
     const userCols = sqlite.pragma('table_info(users)') as { name: string }[]
     if (!userCols.some((c) => c.name === 'notes')) {
       sqlite.exec('ALTER TABLE users ADD COLUMN notes TEXT')
+    }
+
+    const contentCols = sqlite.pragma('table_info(contents)') as { name: string }[]
+    if (!contentCols.some((c) => c.name === 'hook_id')) {
+      sqlite.exec('ALTER TABLE contents ADD COLUMN hook_id TEXT')
+    }
+
+    const pubCols = sqlite.pragma('table_info(publications)') as { name: string }[]
+    if (!pubCols.some((c) => c.name === 'views')) {
+      sqlite.exec('ALTER TABLE publications ADD COLUMN views INTEGER NOT NULL DEFAULT 0')
+    }
+    if (!pubCols.some((c) => c.name === 'likes')) {
+      sqlite.exec('ALTER TABLE publications ADD COLUMN likes INTEGER NOT NULL DEFAULT 0')
+    }
+    if (!pubCols.some((c) => c.name === 'comments')) {
+      sqlite.exec('ALTER TABLE publications ADD COLUMN comments INTEGER NOT NULL DEFAULT 0')
+    }
+    if (!pubCols.some((c) => c.name === 'shares')) {
+      sqlite.exec('ALTER TABLE publications ADD COLUMN shares INTEGER NOT NULL DEFAULT 0')
+    }
+    if (!pubCols.some((c) => c.name === 'last_checked_at')) {
+      sqlite.exec('ALTER TABLE publications ADD COLUMN last_checked_at TEXT')
+    }
+    if (!pubCols.some((c) => c.name === 'metric_error')) {
+      sqlite.exec('ALTER TABLE publications ADD COLUMN metric_error TEXT')
+    }
+
+    // 3. Create indexes now that all columns are guaranteed to exist
+    for (const stmt of statements) {
+      if (stmt.startsWith('CREATE INDEX') || stmt.startsWith('CREATE UNIQUE INDEX')) {
+        sqlite.exec(stmt)
+      }
     }
 
     sqlite.exec('COMMIT')

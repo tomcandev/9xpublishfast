@@ -11,6 +11,8 @@ import { CONTENT_TYPES, assets, contents } from '../db/schema.js'
 import { config } from '../lib/config.js'
 import { requireIngest } from '../lib/guards.js'
 
+import { inferHookId } from '../lib/metrics.js'
+
 const createSchema = z.object({
   code: z.string().min(1).max(120),
   title: z.string().max(300).optional(),
@@ -18,6 +20,7 @@ const createSchema = z.object({
   contentType: z.enum(CONTENT_TYPES).default('video'),
   status: z.enum(['DRAFT', 'READY']).default('DRAFT'),
   assignedUserId: z.string().optional(),
+  hookId: z.string().optional(),
 })
 
 export async function ingestRoutes(app: FastifyInstance) {
@@ -34,8 +37,15 @@ export async function ingestRoutes(app: FastifyInstance) {
     if (existing) return reply.code(409).send({ error: `Code "${parsed.data.code}" already exists` })
 
     const id = randomUUID()
+    const hookId = parsed.data.hookId || inferHookId(parsed.data.title, parsed.data.caption)
+
     db.insert(contents)
-      .values({ id, ...parsed.data, assignedUserId: parsed.data.assignedUserId ?? null })
+      .values({
+        id,
+        ...parsed.data,
+        hookId,
+        assignedUserId: parsed.data.assignedUserId ?? null,
+      })
       .run()
 
     return reply.code(201).send({ content: db.select().from(contents).where(eq(contents.id, id)).get() })

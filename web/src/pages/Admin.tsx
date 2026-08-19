@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Alert, Spinner, StatusBadge, formatDate } from '../components/ui'
-import { api, assetUrl, type Asset, type Content, type ContentStatus, type Role, type User } from '../lib/api'
+import { api, assetUrl, type Asset, type Content, type ContentStatus, type HookPerformanceItem, type MetricSummary, type Role, type User } from '../lib/api'
 
-type Tab = 'contents' | 'users' | 'tokens'
+type Tab = 'contents' | 'analytics' | 'users' | 'tokens'
 
 export function Admin() {
   const [tab, setTab] = useState<Tab>('contents')
@@ -13,6 +13,7 @@ export function Admin() {
         {(
           [
             ['contents', 'Content'],
+            ['analytics', '📊 Analytics & Hooks'],
             ['users', 'Users'],
             ['tokens', 'API Tokens'],
           ] as const
@@ -27,6 +28,7 @@ export function Admin() {
         ))}
       </div>
       {tab === 'contents' && <ContentsTab />}
+      {tab === 'analytics' && <AnalyticsTab />}
       {tab === 'users' && <UsersTab />}
       {tab === 'tokens' && <TokensTab />}
     </div>
@@ -1430,3 +1432,374 @@ function TokensTab() {
     </div>
   )
 }
+
+/* ---------------- analytics & hooks ---------------- */
+
+function AnalyticsTab() {
+  const [data, setData] = useState<MetricSummary | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [editingPost, setEditingPost] = useState<MetricSummary['posts'][0] | null>(null)
+
+  const load = useCallback(async () => {
+    try {
+      const res = await api.admin.metrics()
+      setData(res)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load analytics')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  async function handleSync() {
+    setSyncing(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const res = await api.admin.syncMetrics()
+      setData(res.summary)
+      setNotice(`✓ Sync completed! Scanned ${res.totalChecked} links, updated ${res.updated}.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sync failed')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  if (loading) return <Spinner />
+
+  const summary = data?.summary || {
+    totalPublications: 0,
+    totalViews: 0,
+    totalLikes: 0,
+    avgViewsPerPost: 0,
+  }
+
+  const topHook = data?.hooks.find((h) => h.totalPosts > 0 && h.avgViews > 0)
+
+  return (
+    <div className="stack" style={{ gap: 24 }}>
+      {error && <Alert>{error}</Alert>}
+      {notice && <Alert kind="ok">{notice}</Alert>}
+
+      {/* Header & Sync Controls */}
+      <div className="card row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h2 style={{ margin: 0 }}>Social Media & Hook Analytics</h2>
+          <span className="hint">Daily view counts, engagement metrics, and hook performance matrix</span>
+        </div>
+        <button
+          className="btn btn-primary"
+          onClick={handleSync}
+          disabled={syncing}
+          style={{ minWidth: 160 }}
+        >
+          {syncing ? '🔄 Crawling Views...' : '🔄 Sync All Metrics Now'}
+        </button>
+      </div>
+
+      {/* Stat Cards */}
+      <div className="grid-stats">
+        <div className="card stat-card">
+          <div className="stat-value">{summary.totalViews.toLocaleString()}</div>
+          <div className="stat-label">👁️ Total Tracked Views</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-value">{summary.totalPublications}</div>
+          <div className="stat-label">🎬 Verified Posts</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-value">{summary.avgViewsPerPost.toLocaleString()}</div>
+          <div className="stat-label">📈 Avg Views / Post</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-value" style={{ fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {topHook ? topHook.title : 'Awaiting data'}
+          </div>
+          <div className="stat-label">🏆 Top Performing Hook</div>
+        </div>
+      </div>
+
+      {/* Hook Leaderboard */}
+      <div className="card stack">
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3>🎯 Hook Performance Matrix</h3>
+          <span className="hint">Ranked by average views per published post</span>
+        </div>
+
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style={{ width: 40 }}>#</th>
+                <th>Hook & Topic</th>
+                <th>Category</th>
+                <th style={{ textAlign: 'right' }}>Posts</th>
+                <th style={{ textAlign: 'right' }}>Total Views</th>
+                <th style={{ textAlign: 'right' }}>Avg Views</th>
+                <th>Recommendation</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data?.hooks.map((h, idx) => (
+                <tr key={h.hookId} style={idx === 0 && h.totalPosts > 0 ? { background: 'var(--surface-hover)' } : undefined}>
+                  <td style={{ fontWeight: 'bold' }}>{idx + 1}</td>
+                  <td>
+                    <div><strong>{h.title}</strong></div>
+                    <code className="hint" style={{ fontSize: 11 }}>{h.hookId}</code>
+                  </td>
+                  <td>
+                    <span className="badge" style={{ textTransform: 'capitalize' }}>
+                      {h.category.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{h.totalPosts}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{h.totalViews.toLocaleString()}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 'bold', color: h.avgViews >= 2000 ? 'var(--primary)' : 'inherit' }}>
+                    {h.avgViews.toLocaleString()}
+                  </td>
+                  <td>
+                    <span
+                      className="badge"
+                      style={{
+                        background:
+                          h.status === 'viral'
+                            ? 'rgba(16, 185, 129, 0.15)'
+                            : h.status === 'good'
+                              ? 'rgba(59, 130, 246, 0.15)'
+                              : h.status === 'underperforming'
+                                ? 'rgba(239, 68, 68, 0.15)'
+                                : 'var(--border)',
+                        color:
+                          h.status === 'viral'
+                            ? '#10b981'
+                            : h.status === 'good'
+                              ? '#3b82f6'
+                              : h.status === 'underperforming'
+                                ? '#ef4444'
+                                : 'inherit',
+                      }}
+                    >
+                      {h.recommendation}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {(!data?.hooks || data.hooks.length === 0) && (
+                <tr>
+                  <td colSpan={7} className="hint" style={{ textAlign: 'center', padding: 24 }}>
+                    No hook analytics available yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Published Links & Per-Post Tracker */}
+      <div className="card stack">
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3>📋 Published Post Tracker</h3>
+          <span className="hint">{data?.posts.length || 0} live submissions tracked</span>
+        </div>
+
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Code & Title</th>
+                <th>Platform</th>
+                <th style={{ textAlign: 'right' }}>Views 👁️</th>
+                <th style={{ textAlign: 'right' }}>Likes ❤️</th>
+                <th>Published At</th>
+                <th>Last Checked</th>
+                <th>Proof of Work</th>
+                <th style={{ width: 80 }} />
+              </tr>
+            </thead>
+            <tbody>
+              {data?.posts.map((p) => (
+                <tr key={p.publicationId}>
+                  <td>
+                    <div><strong>{p.code}</strong></div>
+                    <span className="hint" style={{ fontSize: 12 }}>{p.title}</span>
+                  </td>
+                  <td>
+                    <span className="badge" style={{ textTransform: 'capitalize' }}>
+                      {p.platform.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 'bold' }}>
+                    {(p.views || 0).toLocaleString()}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    {(p.likes || 0).toLocaleString()}
+                  </td>
+                  <td className="hint">{p.publishedAt ? formatDate(p.publishedAt) : '—'}</td>
+                  <td className="hint">{p.lastCheckedAt ? formatDate(p.lastCheckedAt) : 'Never'}</td>
+                  <td>
+                    <a
+                      href={p.publishedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-xs"
+                    >
+                      🔗 Live Link
+                    </a>
+                  </td>
+                  <td>
+                    <button
+                      className="btn btn-xs btn-ghost"
+                      onClick={() => setEditingPost(p)}
+                    >
+                      ✏️ Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {(!data?.posts || data.posts.length === 0) && (
+                <tr>
+                  <td colSpan={8} className="hint" style={{ textAlign: 'center', padding: 24 }}>
+                    No published posts submitted yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {editingPost && (
+        <EditMetricModal
+          post={editingPost}
+          onClose={() => setEditingPost(null)}
+          onSaved={async () => {
+            setNotice(`✓ Updated metrics for post ${editingPost.code}`)
+            await load()
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+function EditMetricModal({
+  post,
+  onClose,
+  onSaved,
+}: {
+  post: MetricSummary['posts'][0]
+  onClose: () => void
+  onSaved: () => Promise<void>
+}) {
+  const [views, setViews] = useState(post.views || 0)
+  const [likes, setLikes] = useState(post.likes || 0)
+  const [comments, setComments] = useState(post.comments || 0)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    try {
+      await api.admin.updatePublicationMetrics(post.publicationId, {
+        views: Number(views) || 0,
+        likes: Number(likes) || 0,
+        comments: Number(comments) || 0,
+      })
+      await onSaved()
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update metrics')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div
+      className="modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div className="modal-card stack" style={{ maxWidth: 400 }}>
+        <div className="row" style={{ justifyContent: 'space-between' }}>
+          <div>
+            <h3>Edit Post Metrics</h3>
+            <span className="hint">{post.code} ({post.platform})</span>
+          </div>
+          <button className="btn btn-sm btn-ghost" onClick={onClose} type="button">
+            ✕
+          </button>
+        </div>
+
+        {error && <Alert>{error}</Alert>}
+
+        <form className="stack" onSubmit={handleSubmit} style={{ gap: 14 }}>
+          <div className="field">
+            <label className="label">Total Views 👁️</label>
+            <input
+              className="input"
+              type="number"
+              min="0"
+              value={views}
+              onChange={(e) => setViews(parseInt(e.target.value, 10) || 0)}
+              required
+            />
+          </div>
+
+          <div className="field">
+            <label className="label">Likes ❤️</label>
+            <input
+              className="input"
+              type="number"
+              min="0"
+              value={likes}
+              onChange={(e) => setLikes(parseInt(e.target.value, 10) || 0)}
+            />
+          </div>
+
+          <div className="field">
+            <label className="label">Comments 💬</label>
+            <input
+              className="input"
+              type="number"
+              min="0"
+              value={comments}
+              onChange={(e) => setComments(parseInt(e.target.value, 10) || 0)}
+            />
+          </div>
+
+          <div className="row" style={{ justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+            <button className="btn btn-ghost" type="button" onClick={onClose} disabled={busy}>
+              Cancel
+            </button>
+            <button className="btn btn-primary" type="submit" disabled={busy}>
+              {busy ? 'Saving...' : 'Save Metrics'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+

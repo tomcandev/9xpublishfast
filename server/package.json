@@ -11,6 +11,7 @@
     "start": "node dist/index.js",
     "migrate": "tsx src/db/migrate.ts",
     "seed": "tsx src/scripts/seed.ts",
+    "track-metrics": "tsx src/scripts/track-metrics.ts",
     "test": "node --import tsx --test src/**/*.test.ts"
   },
   "dependencies": {

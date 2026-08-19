@@ -1,0 +1,432 @@
+import { eq } from 'drizzle-orm'
+import { db } from '../db/index.js'
+import { contents, publications } from '../db/schema.js'
+
+export interface MetricResult {
+  views: number
+  likes: number
+  comments: number
+  shares: number
+  error: string | null
+}
+
+export interface HookPerformanceItem {
+  hookId: string
+  title: string
+  category: string
+  totalPosts: number
+  totalViews: number
+  totalLikes: number
+  avgViews: number
+  topPostUrl?: string
+  status: 'viral' | 'good' | 'average' | 'underperforming' | 'new'
+  recommendation: string
+}
+
+/**
+ * Standard mapping of known Hook IDs to their category and description
+ */
+export const KNOWN_HOOKS: Record<string, { title: string; category: string }> = {
+  h_score_01: {
+    title: 'How I boosted my PTE by 25 points in 7 days',
+    category: 'score_boost',
+  },
+  h_score_02: {
+    title: 'From 58 to 88: The ONE change that fixed my score',
+    category: 'score_boost',
+  },
+  h_trigger_02: {
+    title: 'Visa expiring in 30 days. Here is my 79+ game plan:',
+    category: 'external_trigger',
+  },
+  h_hack_01: {
+    title: '3 words PTE always repeats in Write From Dictation',
+    category: 'quick_tip',
+  },
+  h_hack_02: {
+    title: 'The 2-second pause trick for Repeat Sentence',
+    category: 'strategy',
+  },
+  h_hack_03: {
+    title: 'How to memorize 50 WFD sentences in 15 minutes',
+    category: 'strategy',
+  },
+  h_mistake_01: {
+    title: 'Stop practicing full mock tests. Do this instead:',
+    category: 'mistake',
+  },
+  h_myth_01: {
+    title: 'Myth: You need perfect British accent to get 90 in PTE',
+    category: 'myth_busting',
+  },
+  h_data_01: {
+    title: 'Why Write From Dictation is worth 40+ PTE points',
+    category: 'score_data',
+  },
+}
+
+/**
+ * Automatically infer hook_id from title or caption text if not explicitly provided
+ */
+export function inferHookId(title?: string | null, caption?: string | null): string {
+  const text = `${title || ''} ${caption || ''}`.toLowerCase()
+  if (text.includes('58 to 88') || text.includes('58 to 8')) return 'h_score_02'
+  if (text.includes('25 point') || text.includes('boosted my pte by 25')) return 'h_score_01'
+  if (text.includes('visa expiring') || text.includes('visa deadline') || text.includes('30 day')) return 'h_trigger_02'
+  if (text.includes('2-second pause') || text.includes('pause trick') || text.includes('repeat sentence fluency')) return 'h_hack_02'
+  if (text.includes('3 words pte always') || text.includes('3 patterns')) return 'h_hack_01'
+  if (text.includes('memorize 50 wfd') || text.includes('50 wfd sentences')) return 'h_hack_03'
+  if (text.includes('stop practicing full mock') || text.includes('full mock test')) return 'h_mistake_01'
+  if (text.includes('perfect british accent') || text.includes('accent to get 90')) return 'h_myth_01'
+  if (text.includes('40+ pte points') || text.includes('worth 40+')) return 'h_data_01'
+  return 'custom_hook'
+}
+
+/**
+ * Resolve short social URLs (e.g. vt.tiktok.com) to final canonical destination
+ */
+export async function resolveFinalUrl(rawUrl: string): Promise<string> {
+  try {
+    const res = await fetch(rawUrl, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+      },
+    })
+    return res.url || rawUrl
+  } catch {
+    return rawUrl
+  }
+}
+
+/**
+ * Fetch public video/post metrics across TikTok, YouTube, Instagram
+ */
+export async function fetchSocialMetrics(rawUrl: string, _platform?: string): Promise<MetricResult> {
+  const cleanUrl = rawUrl.trim()
+  if (!cleanUrl) {
+    return { views: 0, likes: 0, comments: 0, shares: 0, error: 'Empty URL' }
+  }
+
+  const resolved = await resolveFinalUrl(cleanUrl)
+
+  // 1. TikTok Handler
+  if (cleanUrl.includes('tiktok.com') || resolved.includes('tiktok.com')) {
+    return fetchTikTokMetrics(resolved)
+  }
+
+  // 2. YouTube Shorts Handler
+  if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be') || resolved.includes('youtube.com')) {
+    return fetchYouTubeMetrics(resolved)
+  }
+
+  // 3. Generic fallback
+  return {
+    views: 0,
+    likes: 0,
+    comments: 0,
+    shares: 0,
+    error: null,
+  }
+}
+
+async function fetchTikTokMetrics(url: string): Promise<MetricResult> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    })
+
+    const html = await res.text()
+
+    let views = 0
+    let likes = 0
+    let comments = 0
+    let shares = 0
+
+    // Search for playCount, diggCount, commentCount, shareCount in SSR payload
+    const playMatch = html.match(/"playCount":\s*(\d+)/)
+    if (playMatch) views = parseInt(playMatch[1]!, 10)
+
+    const diggMatch = html.match(/"diggCount":\s*(\d+)/)
+    if (diggMatch) likes = parseInt(diggMatch[1]!, 10)
+
+    const commentMatch = html.match(/"commentCount":\s*(\d+)/)
+    if (commentMatch) comments = parseInt(commentMatch[1]!, 10)
+
+    const shareMatch = html.match(/"shareCount":\s*(\d+)/)
+    if (shareMatch) shares = parseInt(shareMatch[1]!, 10)
+
+    return {
+      views,
+      likes,
+      comments,
+      shares,
+      error: null,
+    }
+  } catch (err) {
+    return {
+      views: 0,
+      likes: 0,
+      comments: 0,
+      shares: 0,
+      error: err instanceof Error ? err.message : 'TikTok fetch failed',
+    }
+  }
+}
+
+async function fetchYouTubeMetrics(url: string): Promise<MetricResult> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+      },
+    })
+    const html = await res.text()
+
+    let views = 0
+    let likes = 0
+
+    // Regex for YouTube view count
+    const viewMatch =
+      html.match(/"viewCount":\s*"(\d+)"/) ||
+      html.match(/\\"viewCount\\":\s*\\"(\d+)\\"/) ||
+      html.match(/(\d[\d,.]*)\s+views/i)
+
+    if (viewMatch) {
+      const numStr = viewMatch[1]!.replace(/[,.]/g, '')
+      views = parseInt(numStr, 10) || 0
+    }
+
+    return {
+      views,
+      likes,
+      comments: 0,
+      shares: 0,
+      error: null,
+    }
+  } catch (err) {
+    return {
+      views: 0,
+      likes: 0,
+      comments: 0,
+      shares: 0,
+      error: err instanceof Error ? err.message : 'YouTube fetch failed',
+    }
+  }
+}
+
+/**
+ * Synchronize all publication metrics in database
+ */
+export async function syncAllPublicationMetrics(): Promise<{
+  totalChecked: number
+  updated: number
+  errors: number
+}> {
+  const pubs = db.select().from(publications).all()
+  let updated = 0
+  let errors = 0
+
+  const nowIso = new Date().toISOString()
+
+  for (const pub of pubs) {
+    if (!pub.publishedUrl) continue
+
+    const metrics = await fetchSocialMetrics(pub.publishedUrl, pub.platform)
+
+    db.update(publications)
+      .set({
+        views: metrics.views > 0 ? metrics.views : pub.views,
+        likes: metrics.likes > 0 ? metrics.likes : pub.likes,
+        comments: metrics.comments > 0 ? metrics.comments : pub.comments,
+        shares: metrics.shares > 0 ? metrics.shares : pub.shares,
+        lastCheckedAt: nowIso,
+        metricError: metrics.error,
+      })
+      .where(eq(publications.id, pub.id))
+      .run()
+
+    if (metrics.error) {
+      errors++
+    } else {
+      updated++
+    }
+
+    // Small delay to be polite to host servers
+    await new Promise((r) => setTimeout(r, 300))
+  }
+
+  return {
+    totalChecked: pubs.filter((p) => Boolean(p.publishedUrl)).length,
+    updated,
+    errors,
+  }
+}
+
+/**
+ * Compute Hook Performance Analytics Summary
+ */
+export function getHookPerformanceSummary(): {
+  summary: {
+    totalPublications: number
+    totalViews: number
+    totalLikes: number
+    avgViewsPerPost: number
+  }
+  hooks: HookPerformanceItem[]
+  posts: Array<{
+    publicationId: string
+    contentId: string
+    code: string
+    title: string
+    hookId: string
+    platform: string
+    publishedUrl: string
+    publishedAt: string | null
+    views: number
+    likes: number
+    comments: number
+    lastCheckedAt: string | null
+  }>
+} {
+  const allContents = db.select().from(contents).all()
+  const allPubs = db.select().from(publications).all()
+
+  // Map content lookup
+  const contentMap = new Map(allContents.map((c) => [c.id, c]))
+
+  const postList = []
+  const hookStats = new Map<
+    string,
+    {
+      totalPosts: number
+      totalViews: number
+      totalLikes: number
+      topPostUrl?: string
+      maxViews: number
+    }
+  >()
+
+  let grandTotalViews = 0
+  let grandTotalLikes = 0
+
+  for (const pub of allPubs) {
+    if (!pub.publishedUrl) continue
+    const c = contentMap.get(pub.contentId)
+    const hookId = c?.hookId || inferHookId(c?.title, c?.caption)
+
+    grandTotalViews += pub.views || 0
+    grandTotalLikes += pub.likes || 0
+
+    postList.push({
+      publicationId: pub.id,
+      contentId: pub.contentId,
+      code: c?.code || 'UNKNOWN',
+      title: c?.title || 'Untitled',
+      hookId,
+      platform: pub.platform,
+      publishedUrl: pub.publishedUrl,
+      publishedAt: pub.publishedAt,
+      views: pub.views || 0,
+      likes: pub.likes || 0,
+      comments: pub.comments || 0,
+      lastCheckedAt: pub.lastCheckedAt,
+    })
+
+    const curr = hookStats.get(hookId) || {
+      totalPosts: 0,
+      totalViews: 0,
+      totalLikes: 0,
+      maxViews: 0,
+    }
+
+    curr.totalPosts += 1
+    curr.totalViews += pub.views || 0
+    curr.totalLikes += pub.likes || 0
+    if ((pub.views || 0) >= curr.maxViews) {
+      curr.maxViews = pub.views || 0
+      curr.topPostUrl = pub.publishedUrl
+    }
+
+    hookStats.set(hookId, curr)
+  }
+
+  // Build ranked hook list
+  const hookItems: HookPerformanceItem[] = []
+
+  // Add all known hooks even if 0 posts yet, plus any custom hooks
+  const allHookIds = new Set([...Object.keys(KNOWN_HOOKS), ...hookStats.keys()])
+
+  for (const hid of allHookIds) {
+    const stats = hookStats.get(hid) || {
+      totalPosts: 0,
+      totalViews: 0,
+      totalLikes: 0,
+      maxViews: 0,
+    }
+
+    const known = KNOWN_HOOKS[hid]
+    const title = known ? known.title : hid === 'custom_hook' ? 'Custom Generated Hook' : hid
+    const category = known ? known.category : 'general'
+    const avgViews = stats.totalPosts > 0 ? Math.round(stats.totalViews / stats.totalPosts) : 0
+
+    let status: HookPerformanceItem['status'] = 'new'
+    let recommendation = 'Awaiting more data'
+
+    if (stats.totalPosts === 0) {
+      status = 'new'
+      recommendation = 'Ready for production batch'
+    } else if (avgViews >= 10000) {
+      status = 'viral'
+      recommendation = '🏆 Top Performer: Scale up & duplicate across all KOLs'
+    } else if (avgViews >= 2000) {
+      status = 'good'
+      recommendation = '🚀 High CTR: Prioritize in daily schedule'
+    } else if (avgViews >= 500) {
+      status = 'average'
+      recommendation = '⭐ Stable: Keep in regular rotation'
+    } else {
+      status = 'underperforming'
+      recommendation = '⚠️ Low views: Soft-archive or refine caption hook'
+    }
+
+    hookItems.push({
+      hookId: hid,
+      title,
+      category,
+      totalPosts: stats.totalPosts,
+      totalViews: stats.totalViews,
+      totalLikes: stats.totalLikes,
+      avgViews,
+      topPostUrl: stats.topPostUrl,
+      status,
+      recommendation,
+    })
+  }
+
+  // Sort by totalPosts desc then avgViews desc
+  hookItems.sort((a, b) => {
+    if (a.totalPosts > 0 && b.totalPosts === 0) return -1
+    if (b.totalPosts > 0 && a.totalPosts === 0) return 1
+    return b.avgViews - a.avgViews
+  })
+
+  return {
+    summary: {
+      totalPublications: postList.length,
+      totalViews: grandTotalViews,
+      totalLikes: grandTotalLikes,
+      avgViewsPerPost: postList.length > 0 ? Math.round(grandTotalViews / postList.length) : 0,
+    },
+    hooks: hookItems,
+    posts: postList.sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || '')),
+  }
+}
