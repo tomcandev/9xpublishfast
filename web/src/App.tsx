@@ -42,8 +42,25 @@ export function App() {
             PublishFast
           </NavLink>
 
-          <nav className="nav">
+          <nav className="nav" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {user.role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
+
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => setShowReminderModal(true)}
+              title="Daily Post Reminders & Notification Settings"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 10px',
+                borderRadius: 'var(--radius-sm)',
+              }}
+            >
+              <BellIcon />
+              <span style={{ fontSize: '0.85rem' }}>Reminders</span>
+            </button>
 
             <div className="menu-wrap" ref={menuRef}>
               <button
@@ -52,7 +69,7 @@ export function App() {
                 aria-expanded={menuOpen}
                 onClick={() => setMenuOpen((v) => !v)}
               >
-                <span>Welcome, {user.displayName} 👋</span>
+                <span>{user.displayName} 👋</span>
                 <ChevronDownIcon />
               </button>
 
