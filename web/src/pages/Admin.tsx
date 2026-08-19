@@ -1152,6 +1152,14 @@ function EditUserModal({
   const [active, setActive] = useState(user.active)
   const [notes, setNotes] = useState(user.notes || '')
   const [newPassword, setNewPassword] = useState('')
+  const [notifStatus, setNotifStatus] = useState<{
+    subscriptionCount: number
+    enabled: boolean
+    reminderTimes: string[]
+    lastNotifiedDate: string | null
+  } | null>(null)
+  const [resettingNotifs, setResettingNotifs] = useState(false)
+  const [notifNotice, setNotifNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -1164,6 +1172,34 @@ function EditUserModal({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await api.admin.getUserNotificationStatus(user.id)
+        setNotifStatus(res)
+      } catch {
+        // ignore
+      }
+    })()
+  }, [user.id])
+
+  async function handleResetUserNotifications() {
+    if (!confirm(`Reset all registered push notification devices and reminder history for @${user.username}?`)) {
+      return
+    }
+    setResettingNotifs(true)
+    setNotifNotice(null)
+    try {
+      const res = await api.admin.resetUserNotifications(user.id)
+      setNotifStatus((prev) => (prev ? { ...prev, subscriptionCount: 0 } : null))
+      setNotifNotice(`✓ Cleared ${res.cleared} registered device subscription(s).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset notifications')
+    } finally {
+      setResettingNotifs(false)
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -1281,6 +1317,48 @@ function EditUserModal({
               placeholder="e.g. TikTok @handle, niche, posting schedule, target tags..."
               rows={2}
             />
+          </div>
+
+          {/* Push Notifications & Device Management */}
+          <div
+            className="field stack"
+            style={{
+              padding: '12px',
+              background: 'var(--bg)',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border)',
+              gap: 8,
+            }}
+          >
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <div>
+                <strong style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>🔔</span>
+                  <span>Push Notifications & Devices</span>
+                </strong>
+                <span className="hint" style={{ fontSize: '0.78rem' }}>
+                  {notifStatus
+                    ? `${notifStatus.subscriptionCount} device(s) registered • Reminders: ${notifStatus.enabled ? notifStatus.reminderTimes.join(', ') : 'Disabled'}`
+                    : 'Loading device status...'}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                onClick={handleResetUserNotifications}
+                disabled={resettingNotifs || busy}
+                title="Disconnect all old/foreign devices and reset push tokens"
+                style={{ color: 'var(--danger)', fontSize: '0.8rem' }}
+              >
+                {resettingNotifs ? 'Resetting...' : '🔄 Reset All Devices'}
+              </button>
+            </div>
+            {notifNotice && (
+              <span className="hint" style={{ color: '#10b981', fontWeight: 600, fontSize: '0.8rem' }}>
+                {notifNotice}
+              </span>
+            )}
           </div>
 
           <div

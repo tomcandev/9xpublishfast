@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify'
 import { asc, desc, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/index.js'
-import { ROLES, apiTokens, assets, contents, publications, users } from '../db/schema.js'
+import { ROLES, apiTokens, assets, contents, publications, pushSubscriptions, reminderSettings, users } from '../db/schema.js'
 import { createApiToken, createUser, hashPassword, publicUser } from '../lib/auth.js'
 import { releaseStaleClaims } from '../lib/claim.js'
 import { config } from '../lib/config.js'
@@ -81,6 +81,36 @@ export async function adminRoutes(app: FastifyInstance) {
       const conflict = message.includes('UNIQUE') ? 'Email already in use' : message
       return reply.code(400).send({ error: conflict })
     }
+  })
+
+  app.get('/api/admin/users/:id/notifications', async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const existing = db.select().from(users).where(eq(users.id, id)).get()
+    if (!existing) return reply.code(404).send({ error: 'User not found' })
+
+    const subs = db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, id)).all()
+    const setting = db.select().from(reminderSettings).where(eq(reminderSettings.userId, id)).get()
+
+    return {
+      subscriptionCount: subs.length,
+      enabled: setting ? Boolean(setting.enabled) : false,
+      reminderTimes: setting ? setting.reminderTimes.split(',').map((t) => t.trim()).filter(Boolean) : ['18:00'],
+      lastNotifiedDate: setting?.lastNotifiedDate || null,
+    }
+  })
+
+  app.post('/api/admin/users/:id/reset-notifications', async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const existing = db.select().from(users).where(eq(users.id, id)).get()
+    if (!existing) return reply.code(404).send({ error: 'User not found' })
+
+    const result = db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, id)).run()
+    db.update(reminderSettings)
+      .set({ lastNotifiedDate: null, updatedAt: new Date().toISOString() })
+      .where(eq(reminderSettings.userId, id))
+      .run()
+
+    return { ok: true, cleared: result.changes }
   })
 
   /* ---------- contents ---------- */

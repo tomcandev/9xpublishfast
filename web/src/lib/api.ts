@@ -201,6 +201,11 @@ export const api = {
       method: 'POST',
     }),
 
+  resetNotifications: () =>
+    request<{ ok: true; cleared: number }>('/api/notifications/reset', {
+      method: 'POST',
+    }),
+
   me: () => request<{ user: User }>('/api/me'),
 
   stats: () => request<Stats>('/api/contents/stats'),
@@ -251,6 +256,17 @@ export const api = {
         notes: string | null
       }>,
     ) => request<{ user: User }>(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+    getUserNotificationStatus: (userId: string) =>
+      request<{
+        subscriptionCount: number
+        enabled: boolean
+        reminderTimes: string[]
+        lastNotifiedDate: string | null
+      }>(`/api/admin/users/${userId}/notifications`),
+    resetUserNotifications: (userId: string) =>
+      request<{ ok: true; cleared: number }>(`/api/admin/users/${userId}/reset-notifications`, {
+        method: 'POST',
+      }),
 
     contents: () => request<{ contents: Content[] }>('/api/admin/contents'),
     updateContent: (

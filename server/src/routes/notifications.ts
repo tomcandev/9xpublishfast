@@ -210,4 +210,15 @@ export async function notificationRoutes(app: FastifyInstance) {
 
     return { ok: true, sentTo: successCount }
   })
+
+  /** Clear all push subscriptions for current user (e.g. when switching devices or resetting) */
+  app.post('/api/notifications/reset', async (req) => {
+    const user = req.user!
+    const result = db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, user.id)).run()
+    db.update(reminderSettings)
+      .set({ lastNotifiedDate: null, updatedAt: new Date().toISOString() })
+      .where(eq(reminderSettings.userId, user.id))
+      .run()
+    return { ok: true, cleared: result.changes }
+  })
 }

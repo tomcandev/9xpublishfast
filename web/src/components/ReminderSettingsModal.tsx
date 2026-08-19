@@ -137,6 +137,26 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
     }
   }
 
+  async function handleResetAllDevices() {
+    if (!confirm('Reset and disconnect all registered devices for push notifications? You can freshly re-enable this device immediately after.')) {
+      return
+    }
+    setError(null)
+    setSuccess(null)
+    setBusy(true)
+    try {
+      await unsubscribeFromPush().catch(() => {})
+      const res = await api.resetNotifications()
+      setHasSubscription(false)
+      setSubscriptionCount(0)
+      setSuccess(`✓ Cleared ${res.cleared} registered device(s). Tap "Enable Push on this device" to connect freshly!`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset devices')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
@@ -356,18 +376,30 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
                 )}
               </div>
 
-              {hasSubscription && (
-                <div className="row" style={{ gap: 8, marginTop: 4 }}>
+              <div className="row" style={{ gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                {hasSubscription && (
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm"
                     onClick={handleTestPush}
-                    disabled={testing}
+                    disabled={testing || busy}
                   >
                     {testing ? '⏳ Sending…' : '🧪 Send Test Push Notification'}
                   </button>
-                </div>
-              )}
+                )}
+                {subscriptionCount > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={handleResetAllDevices}
+                    disabled={busy}
+                    style={{ color: 'var(--text-soft)' }}
+                    title="Disconnect old/inactive devices and reset push tokens"
+                  >
+                    🔄 Reset All Registered Devices
+                  </button>
+                )}
+              </div>
 
               {permission === 'denied' && (
                 <div
