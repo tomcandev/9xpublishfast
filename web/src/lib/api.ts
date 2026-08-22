@@ -75,13 +75,22 @@ export interface MetricSummary {
     totalLikes: number
     avgViewsPerPost: number
   }
+  kols?: {
+    totalKols: number
+    postedKols: Array<{ id: string; username: string; displayName: string; postCount: number }>
+    missingKols: Array<{ id: string; username: string; displayName: string }>
+  }
   hooks: HookPerformanceItem[]
   posts: Array<{
     publicationId: string
     contentId: string
+    userId?: string
+    username?: string
+    displayName?: string
     code: string
     title: string
     hookId: string
+    hookTitle?: string
     platform: Platform
     publishedUrl: string
     publishedAt: string | null

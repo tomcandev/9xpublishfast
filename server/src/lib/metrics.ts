@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../db/index.js'
-import { contents, publications } from '../db/schema.js'
+import { contents, publications, users } from '../db/schema.js'
 
 export interface MetricResult {
   views: number
@@ -134,6 +134,41 @@ export async function fetchSocialMetrics(rawUrl: string, _platform?: string): Pr
 
 async function fetchTikTokMetrics(url: string): Promise<MetricResult> {
   try {
+    // 1. Try public tikwm endpoint (supports both video and photo/carousel URLs)
+    const tikwmUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`
+    const res = await fetch(tikwmUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        Accept: 'application/json',
+      },
+      signal: AbortSignal.timeout(10000),
+    })
+
+    if (res.ok) {
+      const data = (await res.json()) as {
+        code?: number
+        data?: {
+          play_count?: number
+          digg_count?: number
+          comment_count?: number
+          share_count?: number
+        }
+      }
+      if (data && data.code === 0 && data.data) {
+        return {
+          views: Number(data.data.play_count) || 0,
+          likes: Number(data.data.digg_count) || 0,
+          comments: Number(data.data.comment_count) || 0,
+          shares: Number(data.data.share_count) || 0,
+          error: null,
+        }
+      }
+    }
+  } catch {
+    // Fall back to direct scraping if tikwm is temporarily unreachable
+  }
+
+  try {
     const res = await fetch(url, {
       headers: {
         'User-Agent':
@@ -141,6 +176,7 @@ async function fetchTikTokMetrics(url: string): Promise<MetricResult> {
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
       },
+      signal: AbortSignal.timeout(8000),
     })
 
     const html = await res.text()
@@ -281,13 +317,22 @@ export function getHookPerformanceSummary(): {
     totalLikes: number
     avgViewsPerPost: number
   }
+  kols: {
+    totalKols: number
+    postedKols: Array<{ id: string; username: string; displayName: string; postCount: number }>
+    missingKols: Array<{ id: string; username: string; displayName: string }>
+  }
   hooks: HookPerformanceItem[]
   posts: Array<{
     publicationId: string
     contentId: string
+    userId: string
+    username: string
+    displayName: string
     code: string
     title: string
     hookId: string
+    hookTitle: string
     platform: string
     publishedUrl: string
     publishedAt: string | null
@@ -299,9 +344,11 @@ export function getHookPerformanceSummary(): {
 } {
   const allContents = db.select().from(contents).all()
   const allPubs = db.select().from(publications).all()
+  const allUsers = db.select().from(users).where(eq(users.active, true)).all()
 
-  // Map content lookup
+  // Map lookups
   const contentMap = new Map(allContents.map((c) => [c.id, c]))
+  const userMap = new Map(allUsers.map((u) => [u.id, u]))
 
   const postList = []
   const hookStats = new Map<
@@ -315,23 +362,33 @@ export function getHookPerformanceSummary(): {
     }
   >()
 
+  const userPostCounts = new Map<string, number>()
+
   let grandTotalViews = 0
   let grandTotalLikes = 0
 
   for (const pub of allPubs) {
     if (!pub.publishedUrl) continue
     const c = contentMap.get(pub.contentId)
+    const u = userMap.get(pub.userId)
     const hookId = c?.hookId || inferHookId(c?.title, c?.caption)
+    const hookTitle = KNOWN_HOOKS[hookId]?.title || c?.title || 'Untitled'
 
     grandTotalViews += pub.views || 0
     grandTotalLikes += pub.likes || 0
 
+    userPostCounts.set(pub.userId, (userPostCounts.get(pub.userId) || 0) + 1)
+
     postList.push({
       publicationId: pub.id,
       contentId: pub.contentId,
+      userId: pub.userId,
+      username: u?.username || 'unknown',
+      displayName: u?.displayName || u?.username || 'Unknown',
       code: c?.code || 'UNKNOWN',
       title: c?.title || 'Untitled',
       hookId,
+      hookTitle,
       platform: pub.platform,
       publishedUrl: pub.publishedUrl,
       publishedAt: pub.publishedAt,
@@ -359,10 +416,22 @@ export function getHookPerformanceSummary(): {
     hookStats.set(hookId, curr)
   }
 
+  // Active KOL tracking
+  const kolUsers = allUsers.filter((u) => u.role === 'kol')
+  const postedKols: Array<{ id: string; username: string; displayName: string; postCount: number }> = []
+  const missingKols: Array<{ id: string; username: string; displayName: string }> = []
+
+  for (const k of kolUsers) {
+    const count = userPostCounts.get(k.id) || 0
+    if (count > 0) {
+      postedKols.push({ id: k.id, username: k.username, displayName: k.displayName, postCount: count })
+    } else {
+      missingKols.push({ id: k.id, username: k.username, displayName: k.displayName })
+    }
+  }
+
   // Build ranked hook list
   const hookItems: HookPerformanceItem[] = []
-
-  // Add all known hooks even if 0 posts yet, plus any custom hooks
   const allHookIds = new Set([...Object.keys(KNOWN_HOOKS), ...hookStats.keys()])
 
   for (const hid of allHookIds) {
@@ -412,11 +481,17 @@ export function getHookPerformanceSummary(): {
     })
   }
 
-  // Sort by totalPosts desc then avgViews desc
+  // Sort hooks by avgViews desc
   hookItems.sort((a, b) => {
     if (a.totalPosts > 0 && b.totalPosts === 0) return -1
     if (b.totalPosts > 0 && a.totalPosts === 0) return 1
     return b.avgViews - a.avgViews
+  })
+
+  // Sort posts strictly by views descending (highest view first), then publishedAt desc
+  const sortedPosts = postList.sort((a, b) => {
+    if (b.views !== a.views) return b.views - a.views
+    return (b.publishedAt || '').localeCompare(a.publishedAt || '')
   })
 
   return {
@@ -426,7 +501,12 @@ export function getHookPerformanceSummary(): {
       totalLikes: grandTotalLikes,
       avgViewsPerPost: postList.length > 0 ? Math.round(grandTotalViews / postList.length) : 0,
     },
+    kols: {
+      totalKols: kolUsers.length,
+      postedKols,
+      missingKols,
+    },
     hooks: hookItems,
-    posts: postList.sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || '')),
+    posts: sortedPosts,
   }
 }
