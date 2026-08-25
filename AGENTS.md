@@ -176,6 +176,14 @@ Content-Type: multipart/form-data (field: file)
 * **Content Generation Hook Quality Standards**:
   - Focus on high-intent, high-value hooks: Score transformations (e.g. "From 58 to 88"), high-scoring question types (Write From Dictation, Repeat Sentence), mistake diagnostics, and concrete urgency game plans.
   - Avoid vague, generic, or low-CTR conversational hooks (e.g., avoid "Boss: Can we talk?").
+* **Daily Content Generation Split (3 Standard + 2 Viral 2K)**:
+  - Every daily batch generates **5 posts total**:
+    - **3 Posts**: Standard 4-slide format (`assemble.py`).
+    - **2 Posts**: Viral 2K 7-slide format (`assemble_viral_2k.py`), modeled after the 2,149-view viral video (`@english.deeper`).
+  - **Viral 2K Standards**:
+    - **100% Candid Camera Photography**: Real student selfies holding phones with scores, physical A4 Pearson scorecards (88-90), mirror selfies, real hands crossing planners with red pens, real subway commute, cozy sofa study, and campus celebrations. Zero 2D drawings or vector illustrations.
+    - **Bold Rounded Typography**: `Arial Rounded Bold` / `Rubik Black` / `Montserrat Black`, size `70–78pt`, pure white text with a smooth `9px` thick black stroke outline.
+    - **7-Slide Storytelling Arc**: `[Hook & Result] -> [The Mistake] -> [The Mechanism] -> [Daily Habit] -> [The Technique] -> [The Tool] -> [CTA & Victory]`.
 * Always preserve atomic CAS patterns for any state transitions
 * Keep all dependencies strictly MIT or Apache-2.0
 * Maintain route-level permission checks for all new endpoints
