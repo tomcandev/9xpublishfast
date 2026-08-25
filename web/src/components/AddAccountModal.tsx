@@ -2,9 +2,19 @@ import { useState, type FormEvent } from 'react'
 import { Alert } from './ui'
 import { useAuth } from '../lib/auth'
 
-export function UserPlusIcon() {
+export function UserPlusIcon({ size = 15 }: { size?: number }) {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
       <circle cx="9" cy="7" r="4" />
       <line x1="19" y1="8" x2="19" y2="14" />
@@ -32,66 +42,73 @@ export function AddAccountModal({ onClose }: AddAccountModalProps) {
       await signIn(identifier.trim(), password)
       onClose()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Invalid credentials')
+      setError(err instanceof Error ? err.message : 'Invalid username or password')
       setBusy(false)
     }
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="add-acc-title">
-        <div className="modal-header">
+    <div
+      className="modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+      role="dialog"
+      aria-labelledby="add-acc-title"
+    >
+      <div className="modal-card stack" style={{ maxWidth: '440px' }}>
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: 'var(--color-primary)' }}>
-              <UserPlusIcon />
+            <span style={{ color: 'var(--accent)' }}>
+              <UserPlusIcon size={18} />
             </span>
-            <h2 id="add-acc-title" style={{ margin: 0 }}>Add Another Account</h2>
+            <h2 id="add-acc-title" style={{ fontSize: '1.2rem', margin: 0, fontWeight: 650 }}>
+              Add Another Account
+            </h2>
           </div>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
             ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {error && <Alert kind="error">{error}</Alert>}
+        {error && <Alert kind="error">{error}</Alert>}
 
-            <div className="field">
-              <label htmlFor="add-identifier" style={{ fontWeight: 500 }}>
-                Username or Email
-              </label>
-              <input
-                id="add-identifier"
-                type="text"
-                className="input"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="e.g. yoga or yoga@example.com"
-                required
-                autoFocus
-                disabled={busy}
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="add-password" style={{ fontWeight: 500 }}>
-                Password
-              </label>
-              <input
-                id="add-password"
-                type="password"
-                className="input"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Account password"
-                required
-                disabled={busy}
-              />
-            </div>
+        <form className="stack" onSubmit={handleSubmit}>
+          <div className="field">
+            <label className="label" htmlFor="add-identifier">
+              Username or Email
+            </label>
+            <input
+              id="add-identifier"
+              type="text"
+              className="input"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="e.g. yoga or yoga@example.com"
+              required
+              autoFocus
+              disabled={busy}
+            />
           </div>
 
-          <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-            <button type="button" className="btn btn-outline" onClick={onClose} disabled={busy}>
+          <div className="field">
+            <label className="label" htmlFor="add-password">
+              Password
+            </label>
+            <input
+              id="add-password"
+              type="password"
+              className="input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Account password"
+              required
+              disabled={busy}
+            />
+          </div>
+
+          <div className="row" style={{ justifyContent: 'flex-end', gap: '8px', paddingTop: '8px' }}>
+            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={busy}>
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={busy}>
