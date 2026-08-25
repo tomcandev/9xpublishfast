@@ -3,19 +3,22 @@ import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { Alert, Spinner } from './components/ui'
 import { BellIcon, ReminderSettingsModal } from './components/ReminderSettingsModal'
 import { EditProfileModal, UserIcon } from './components/EditProfileModal'
+import { AddAccountModal, UserPlusIcon } from './components/AddAccountModal'
 import { api } from './lib/api'
 import { useAuth } from './lib/auth'
+import { getSavedAccounts } from './lib/savedAccounts'
 import { Admin } from './pages/Admin'
 import { BoltIcon, Login } from './pages/Login'
 import { Post } from './pages/Post'
 import { Queue } from './pages/Queue'
 
 export function App() {
-  const { user, loading, signOut } = useAuth()
+  const { user, loading, signOut, switchUser } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const [showProfileModal, setShowProfileModal] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [showReminderModal, setShowReminderModal] = useState(false)
+  const [showAddAccountModal, setShowAddAccountModal] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -32,6 +35,8 @@ export function App() {
 
   if (loading) return <Spinner />
   if (!user) return <Login />
+
+  const savedAccounts = getSavedAccounts()
 
   return (
     <div className="shell">
@@ -59,7 +64,8 @@ export function App() {
               </button>
 
               {menuOpen && (
-                <div className="dropdown-menu" role="menu">
+                <div className="dropdown-menu" style={{ minWidth: '220px' }} role="menu">
+                  {/* Profile & Settings Section */}
                   <button
                     type="button"
                     className="dropdown-item"
@@ -96,18 +102,62 @@ export function App() {
                     <KeyIcon />
                     <span>Change Password</span>
                   </button>
+
+                  {/* Divider */}
+                  <div className="dropdown-divider" />
+
+                  {/* Switch Account Section */}
+                  <div className="dropdown-header">Switch Account</div>
+                  {savedAccounts.map((acc) => {
+                    const isCurrent = acc.id === user.id
+                    return (
+                      <button
+                        key={acc.id}
+                        type="button"
+                        className={`dropdown-account-item ${isCurrent ? 'active' : ''}`}
+                        role="menuitem"
+                        onClick={() => {
+                          if (isCurrent) return
+                          setMenuOpen(false)
+                          void switchUser(acc.sessionToken)
+                        }}
+                      >
+                        <div className={`dropdown-avatar ${isCurrent ? 'active' : ''}`}>
+                          {acc.displayName.charAt(0).toUpperCase() || acc.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="dropdown-account-info">
+                          <div className="dropdown-account-name">{acc.displayName}</div>
+                          <div className="dropdown-account-user">
+                            @{acc.username} {acc.role === 'admin' ? '• Admin' : ''}
+                          </div>
+                        </div>
+                        {isCurrent && (
+                          <span style={{ color: 'var(--accent)', display: 'flex' }}>
+                            <CheckIcon />
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+
                   <button
                     type="button"
                     className="dropdown-item"
                     role="menuitem"
                     onClick={() => {
                       setMenuOpen(false)
-                      void signOut()
+                      setShowAddAccountModal(true)
                     }}
+                    style={{ color: 'var(--accent)' }}
                   >
-                    <UserSwitchIcon />
-                    <span>Switch Account</span>
+                    <UserPlusIcon />
+                    <span>Add another account</span>
                   </button>
+
+                  {/* Divider */}
+                  <div className="dropdown-divider" />
+
+                  {/* Sign Out */}
                   <button
                     type="button"
                     className="dropdown-item dropdown-item-danger"
@@ -138,6 +188,7 @@ export function App() {
       </main>
 
       {showProfileModal && <EditProfileModal onClose={() => setShowProfileModal(false)} />}
+      {showAddAccountModal && <AddAccountModal onClose={() => setShowAddAccountModal(false)} />}
       {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
       {showReminderModal && <ReminderSettingsModal onClose={() => setShowReminderModal(false)} />}
     </div>
@@ -327,6 +378,24 @@ function ChevronDownIcon({ size = 12 }: { size?: number }) {
       aria-hidden="true"
     >
       <path d="m6 9 6 6 6-6" />
+    </svg>
+  )
+}
+
+function CheckIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="20 6 9 17 4 12" />
     </svg>
   )
 }
