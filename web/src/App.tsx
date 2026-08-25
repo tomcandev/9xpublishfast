@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { Alert, Spinner } from './components/ui'
 import { BellIcon, ReminderSettingsModal } from './components/ReminderSettingsModal'
+import { EditProfileModal, UserIcon } from './components/EditProfileModal'
 import { api } from './lib/api'
 import { useAuth } from './lib/auth'
 import { Admin } from './pages/Admin'
@@ -12,6 +13,7 @@ import { Queue } from './pages/Queue'
 export function App() {
   const { user, loading, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showProfileModal, setShowProfileModal] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [showReminderModal, setShowReminderModal] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -58,6 +60,18 @@ export function App() {
 
               {menuOpen && (
                 <div className="dropdown-menu" role="menu">
+                  <button
+                    type="button"
+                    className="dropdown-item"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      setShowProfileModal(true)
+                    }}
+                  >
+                    <UserIcon />
+                    <span>Edit Profile & Bio</span>
+                  </button>
                   <button
                     type="button"
                     className="dropdown-item"
@@ -123,6 +137,7 @@ export function App() {
         </Routes>
       </main>
 
+      {showProfileModal && <EditProfileModal onClose={() => setShowProfileModal(false)} />}
       {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
       {showReminderModal && <ReminderSettingsModal onClose={() => setShowReminderModal(false)} />}
     </div>

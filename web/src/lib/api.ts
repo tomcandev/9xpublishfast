@@ -181,6 +181,12 @@ export const api = {
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
 
+  updateProfile: (data: { displayName?: string; email?: string | null; bioLink?: string | null }) =>
+    request<{ user: User }>('/api/me', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
   vapidKey: () => request<{ publicKey: string }>('/api/notifications/vapid-key'),
 
   notificationSettings: () => request<ReminderSettingsData>('/api/notifications/settings'),

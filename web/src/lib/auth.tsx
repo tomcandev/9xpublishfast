@@ -8,6 +8,7 @@ interface AuthState {
   signIn: (identifier: string, password: string) => Promise<void>
   switchUser: (sessionToken: string) => Promise<void>
   signOut: () => Promise<void>
+  updateProfile: (data: { displayName?: string; email?: string | null; bioLink?: string | null }) => Promise<User>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -52,9 +53,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
+  const updateProfile = useCallback(
+    async (data: { displayName?: string; email?: string | null; bioLink?: string | null }) => {
+      const res = await api.updateProfile(data)
+      setUser(res.user)
+      return res.user
+    },
+    [],
+  )
+
   const value = useMemo(
-    () => ({ user, loading, signIn, switchUser, signOut }),
-    [user, loading, signIn, switchUser, signOut],
+    () => ({ user, loading, signIn, switchUser, signOut, updateProfile }),
+    [user, loading, signIn, switchUser, signOut, updateProfile],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

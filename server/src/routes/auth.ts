@@ -106,6 +106,41 @@ export async function authRoutes(app: FastifyInstance) {
     return { ok: true }
   })
 
+  const updateProfileSchema = z.object({
+    displayName: z.string().trim().min(1, 'Display name is required').max(100).optional(),
+    email: z.string().trim().email('Invalid email format').optional().nullable(),
+    bioLink: z.string().trim().url('Invalid URL format').optional().nullable().or(z.literal('')),
+  })
+
+  app.patch('/api/me', { preHandler: requireUser }, async (req, reply) => {
+    const parsed = updateProfileSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? 'Invalid input' })
+    }
+
+    const user = findUserById(req.user!.id)
+    if (!user) return reply.code(404).send({ error: 'User not found' })
+
+    if (parsed.data.email !== undefined && parsed.data.email !== null && parsed.data.email !== user.email) {
+      const existing = findUserByIdentifier(parsed.data.email)
+      if (existing && existing.id !== user.id) {
+        return reply.code(409).send({ error: 'Email address is already taken by another account' })
+      }
+    }
+
+    const updates: Partial<typeof users.$inferInsert> = {}
+    if (parsed.data.displayName !== undefined) updates.displayName = parsed.data.displayName
+    if (parsed.data.email !== undefined) updates.email = parsed.data.email ? parsed.data.email.toLowerCase() : null
+    if (parsed.data.bioLink !== undefined) updates.bioLink = parsed.data.bioLink ? parsed.data.bioLink : null
+
+    if (Object.keys(updates).length > 0) {
+      db.update(users).set(updates).where(eq(users.id, user.id)).run()
+    }
+
+    const updated = findUserById(user.id)
+    return { user: publicUser(updated!) }
+  })
+
   app.get('/api/me', { preHandler: requireUser }, async (req) => ({
     user: publicUser(req.user!),
   }))
