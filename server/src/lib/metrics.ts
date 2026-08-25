@@ -27,6 +27,10 @@ export interface HookPerformanceItem {
  * Standard mapping of known Hook IDs to their category and description
  */
 export const KNOWN_HOOKS: Record<string, { title: string; category: string }> = {
+  h_score_viral_01: {
+    title: 'How I jumped from 50 to 90 in 1 week',
+    category: 'score_boost',
+  },
   h_score_01: {
     title: 'How I boosted my PTE by 25 points in 7 days',
     category: 'score_boost',
@@ -70,6 +74,7 @@ export const KNOWN_HOOKS: Record<string, { title: string; category: string }> = 
  */
 export function inferHookId(title?: string | null, caption?: string | null): string {
   const text = `${title || ''} ${caption || ''}`.toLowerCase()
+  if (text.includes('50 to 90') || text.includes('jumped from 50')) return 'h_score_viral_01'
   if (text.includes('58 to 88') || text.includes('58 to 8')) return 'h_score_02'
   if (text.includes('25 point') || text.includes('boosted my pte by 25')) return 'h_score_01'
   if (text.includes('visa expiring') || text.includes('visa deadline') || text.includes('30 day')) return 'h_trigger_02'
