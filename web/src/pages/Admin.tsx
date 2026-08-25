@@ -946,7 +946,9 @@ function UsersTab() {
     displayName: '',
     role: 'kol' as Role,
     notes: '',
+    bioLink: '',
   })
+  const [copiedUserId, setCopiedUserId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -963,6 +965,29 @@ function UsersTab() {
     void load()
   }, [load])
 
+  function handleAutoGenerateBioLink() {
+    const u = form.username.trim().toLowerCase() || 'username'
+    const link = `https://pteflow.com/?ref=${u}&utm_source=tiktok&utm_medium=bio&utm_campaign=kol_${u}`
+    setForm({ ...form, bioLink: link })
+  }
+
+  async function handleQuickGenerateLink(u: User) {
+    const link = `https://pteflow.com/?ref=${u.username}&utm_source=tiktok&utm_medium=bio&utm_campaign=kol_${u.username}`
+    try {
+      await api.admin.updateUser(u.id, { bioLink: link })
+      setNotice(`✓ Generated tracking bio link for @${u.username}`)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update bio link')
+    }
+  }
+
+  function handleCopyBioLink(userId: string, link: string) {
+    void navigator.clipboard.writeText(link)
+    setCopiedUserId(userId)
+    setTimeout(() => setCopiedUserId(null), 2000)
+  }
+
   async function create(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
@@ -976,9 +1001,10 @@ function UsersTab() {
         displayName: form.displayName.trim() || undefined,
         role: form.role,
         notes: form.notes.trim() || undefined,
+        bioLink: form.bioLink.trim() || undefined,
       })
       setNotice(`Created account "${form.username}".`)
-      setForm({ username: '', password: '', email: '', displayName: '', role: 'kol', notes: '' })
+      setForm({ username: '', password: '', email: '', displayName: '', role: 'kol', notes: '', bioLink: '' })
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Creation failed')
@@ -1056,6 +1082,30 @@ function UsersTab() {
         </div>
 
         <div className="field">
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <label className="label" htmlFor="u-biolink">🔗 Bio / Affiliate Link (optional)</label>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={handleAutoGenerateBioLink}
+              style={{ fontSize: '0.78rem' }}
+            >
+              ⚡ Auto-generate PTE Flow Link
+            </button>
+          </div>
+          <input
+            id="u-biolink"
+            className="input"
+            value={form.bioLink}
+            onChange={(e) => setForm({ ...form, bioLink: e.target.value })}
+            placeholder="e.g. https://pteflow.com/?ref=username&utm_source=tiktok&utm_medium=bio&utm_campaign=kol_username"
+          />
+          <span className="hint">
+            Directs traffic to PTE Flow with UTM and referral parameters for app install attribution.
+          </span>
+        </div>
+
+        <div className="field">
           <label className="label" htmlFor="u-notes">Notes (optional)</label>
           <input
             id="u-notes"
@@ -1079,6 +1129,7 @@ function UsersTab() {
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
+              <th>Bio / Affiliate Link</th>
               <th>Notes</th>
               <th>Status</th>
               <th />
@@ -1091,8 +1142,50 @@ function UsersTab() {
                 <td>{u.displayName}</td>
                 <td className="hint">{u.email || '—'}</td>
                 <td><span className="badge">{u.role}</span></td>
+                <td style={{ minWidth: 180 }}>
+                  {u.bioLink ? (
+                    <div className="row-tight" style={{ alignItems: 'center', gap: 6 }}>
+                      <a
+                        href={u.bioLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hint"
+                        style={{
+                          maxWidth: 140,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          display: 'inline-block',
+                          color: 'var(--primary)',
+                          textDecoration: 'underline',
+                        }}
+                        title={u.bioLink}
+                      >
+                        🔗 {u.bioLink.replace(/^https?:\/\//, '')}
+                      </a>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost"
+                        onClick={() => handleCopyBioLink(u.id, u.bioLink!)}
+                        title="Copy Affiliate Bio Link"
+                        style={{ padding: '2px 6px', fontSize: '0.78rem' }}
+                      >
+                        {copiedUserId === u.id ? '✓ Copied' : '📋 Copy'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => handleQuickGenerateLink(u)}
+                      style={{ fontSize: '0.78rem', color: 'var(--primary)' }}
+                    >
+                      ⚡ Generate Link
+                    </button>
+                  )}
+                </td>
                 <td
-                  style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                   className="hint"
                   title={u.notes || undefined}
                 >
@@ -1151,6 +1244,8 @@ function EditUserModal({
   const [role, setRole] = useState<Role>(user.role)
   const [active, setActive] = useState(user.active)
   const [notes, setNotes] = useState(user.notes || '')
+  const [bioLink, setBioLink] = useState(user.bioLink || '')
+  const [copiedBio, setCopiedBio] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [notifStatus, setNotifStatus] = useState<{
     subscriptionCount: number
@@ -1183,6 +1278,18 @@ function EditUserModal({
       }
     })()
   }, [user.id])
+
+  function handleAutoGenerateModalBioLink() {
+    const link = `https://pteflow.com/?ref=${user.username}&utm_source=tiktok&utm_medium=bio&utm_campaign=kol_${user.username}`
+    setBioLink(link)
+  }
+
+  function handleCopyModalBioLink() {
+    if (!bioLink) return
+    void navigator.clipboard.writeText(bioLink)
+    setCopiedBio(true)
+    setTimeout(() => setCopiedBio(false), 2000)
+  }
 
   async function handleResetUserNotifications() {
     if (!confirm(`Reset all registered push notification devices and reminder history for @${user.username}?`)) {
@@ -1217,6 +1324,7 @@ function EditUserModal({
         role,
         active,
         notes: notes.trim() || null,
+        bioLink: bioLink.trim() || null,
         password: newPassword ? newPassword : undefined,
       })
       await onSaved()
@@ -1303,6 +1411,45 @@ function EditUserModal({
                 <option value="disabled">Disabled</option>
               </select>
             </div>
+          </div>
+
+          {/* Bio / Affiliate Link */}
+          <div className="field stack" style={{ gap: 6 }}>
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <label className="label" htmlFor="edit-biolink" style={{ fontWeight: 650 }}>
+                🔗 Bio / Affiliate Tracking Link
+              </label>
+              <div className="row-tight" style={{ gap: 6 }}>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={handleAutoGenerateModalBioLink}
+                  style={{ fontSize: '0.75rem' }}
+                >
+                  ⚡ Auto-generate
+                </button>
+                {bioLink && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-ghost"
+                    onClick={handleCopyModalBioLink}
+                    style={{ fontSize: '0.75rem' }}
+                  >
+                    {copiedBio ? '✓ Copied' : '📋 Copy'}
+                  </button>
+                )}
+              </div>
+            </div>
+            <input
+              id="edit-biolink"
+              className="input"
+              value={bioLink}
+              onChange={(e) => setBioLink(e.target.value)}
+              placeholder={`https://pteflow.com/?ref=${user.username}&utm_source=tiktok&utm_medium=bio&utm_campaign=kol_${user.username}`}
+            />
+            <span className="hint" style={{ fontSize: '0.76rem' }}>
+              Put this link into TikTok/Instagram Bio. The app install referrer attributes all downloads & signups back to @{user.username}.
+            </span>
           </div>
 
           <div className="field">

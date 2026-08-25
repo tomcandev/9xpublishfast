@@ -69,6 +69,7 @@ export async function createUser(input: {
   displayName?: string
   role?: 'admin' | 'kol'
   notes?: string | null
+  bioLink?: string | null
 }) {
   const username = input.username.trim().toLowerCase()
   if (!isValidUsername(username)) {
@@ -77,6 +78,7 @@ export async function createUser(input: {
     )
   }
   const email = input.email?.trim().toLowerCase() || null
+  const defaultBioLink = `https://pteflow.com/?ref=${username}&utm_source=tiktok&utm_medium=bio&utm_campaign=kol_${username}`
   const user = {
     id: randomUUID(),
     username,
@@ -86,6 +88,7 @@ export async function createUser(input: {
     role: input.role ?? 'kol',
     active: true,
     notes: input.notes?.trim() || null,
+    bioLink: input.bioLink !== undefined ? (input.bioLink?.trim() || null) : defaultBioLink,
   }
   db.insert(users).values(user).run()
   return findUserById(user.id)!

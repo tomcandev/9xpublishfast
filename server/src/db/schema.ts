@@ -22,6 +22,8 @@ export const users = sqliteTable(
     active: integer('active', { mode: 'boolean' }).notNull().default(true),
     /** Optional admin notes (e.g. channel links, niche, posting schedule) */
     notes: text('notes'),
+    /** Affiliate / Bio tracking link for app attribution (e.g. https://pteflow.com/?ref=yoga) */
+    bioLink: text('bio_link'),
     createdAt: text('created_at').notNull().default(now),
   },
   (t) => [

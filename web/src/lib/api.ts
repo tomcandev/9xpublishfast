@@ -10,6 +10,7 @@ export interface User {
   role: Role
   active: boolean
   notes?: string | null
+  bioLink?: string | null
   createdAt: string
 }
 
@@ -253,6 +254,7 @@ export const api = {
       displayName?: string
       role: Role
       notes?: string
+      bioLink?: string
     }) => request<{ user: User }>('/api/admin/users', { method: 'POST', body: JSON.stringify(input) }),
     updateUser: (
       id: string,
@@ -263,6 +265,7 @@ export const api = {
         displayName: string
         email: string | null
         notes: string | null
+        bioLink: string | null
       }>,
     ) => request<{ user: User }>(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
     getUserNotificationStatus: (userId: string) =>
