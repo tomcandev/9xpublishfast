@@ -184,6 +184,12 @@ Content-Type: multipart/form-data (field: file)
     - **100% Candid Camera Photography**: Real student selfies holding phones with scores, physical A4 Pearson scorecards (88-90), mirror selfies, real hands crossing planners with red pens, real subway commute, cozy sofa study, and campus celebrations. Zero 2D drawings or vector illustrations.
     - **Bold Rounded Typography**: `Arial Rounded Bold` / `Rubik Black` / `Montserrat Black`, size `70–78pt`, pure white text with a smooth `9px` thick black stroke outline.
     - **7-Slide Storytelling Arc**: `[Hook & Result] -> [The Mistake] -> [The Mechanism] -> [Daily Habit] -> [The Technique] -> [The Tool] -> [CTA & Victory]`.
+* **Anti-AI Detection & Camera Sanitization Standard (`sanitizer.py`)**:
+  - All carousel slide outputs must be processed through `sanitizer.py`:
+    - **100% C2PA / JUMBF / Google SynthID metadata stripping**: Zero cryptographic AI provenance headers in exported files.
+    - **Frequency Domain SynthID Disruption**: Inject micro-level CMOS photon shot noise (`scale ~ 2.2`) to disrupt spatial frequency watermarking without degrading human visual clarity.
+    - **Authentic Apple iPhone EXIF Injection**: Injects genuine Apple iPhone 15/16 Pro EXIF metadata (Make, Model, LensModel, ExposureTime, FNumber f/1.78, ISO 64-125, ColorSpace sRGB).
+    - **Format**: Export as high-quality camera JPEG (`quality=95, subsampling=0`).
 * Always preserve atomic CAS patterns for any state transitions
 * Keep all dependencies strictly MIT or Apache-2.0
 * Maintain route-level permission checks for all new endpoints
