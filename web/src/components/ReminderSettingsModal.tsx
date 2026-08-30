@@ -392,7 +392,7 @@ export function ReminderSettingsModal({ onClose }: { onClose: () => void }) {
                   <ol style={{ margin: '6px 0 0 18px', padding: 0 }}>
                     <li>Tap Safari's <strong>Share</strong> button (📤) at the bottom.</li>
                     <li>Select <strong>"Add to Home Screen"</strong> (Thêm vào MH chính).</li>
-                    <li>Open <strong>PublishFast</strong> from your Home Screen icon and enable notifications!</li>
+                    <li>Open <strong>9xPublishFast</strong> from your Home Screen icon and enable notifications!</li>
                   </ol>
                 </div>
               )}

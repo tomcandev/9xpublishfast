@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Alert, Spinner, StatusBadge, formatDate } from '../components/ui'
-import { api, assetUrl, type Asset, type Content, type ContentStatus, type HookPerformanceItem, type MetricSummary, type Role, type User } from '../lib/api'
+import { api, assetUrl, type Asset, type Content, type ContentStatus, type ContentType, type HookPerformanceItem, type MetricSummary, type Role, type User } from '../lib/api'
 
 type Tab = 'contents' | 'analytics' | 'users' | 'tokens'
 
@@ -53,7 +53,7 @@ function ContentsTab() {
     code: '',
     title: '',
     caption: '',
-    contentType: 'video' as 'video' | 'carousel',
+    contentType: 'video' as ContentType,
   })
 
   const load = useCallback(async () => {
@@ -225,10 +225,11 @@ function ContentsTab() {
               id="ctype"
               className="select"
               value={form.contentType}
-              onChange={(e) => setForm({ ...form, contentType: e.target.value as 'video' | 'carousel' })}
+              onChange={(e) => setForm({ ...form, contentType: e.target.value as ContentType })}
             >
               <option value="video">Video</option>
               <option value="carousel">Carousel</option>
+              <option value="text">Text / Thread</option>
             </select>
           </div>
         </div>
@@ -415,7 +416,7 @@ function EditContentModal({
   const [code, setCode] = useState(content.code)
   const [title, setTitle] = useState(content.title || '')
   const [caption, setCaption] = useState(content.caption || '')
-  const [contentType, setContentType] = useState<'video' | 'carousel'>(content.contentType)
+  const [contentType, setContentType] = useState<ContentType>(content.contentType)
   const [status, setStatus] = useState<ContentStatus>(content.status)
   const [assignedUserId, setAssignedUserId] = useState<string>(content.assignedUserId || '')
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null)
@@ -643,10 +644,11 @@ function EditContentModal({
                   id="edit-ctype"
                   className="select"
                   value={contentType}
-                  onChange={(e) => setContentType(e.target.value as 'video' | 'carousel')}
+                  onChange={(e) => setContentType(e.target.value as ContentType)}
                 >
                   <option value="video">Video</option>
                   <option value="carousel">Carousel</option>
+                  <option value="text">Text / Thread</option>
                 </select>
               </div>
             </div>
@@ -1112,7 +1114,7 @@ function UsersTab() {
             className="input"
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            placeholder="e.g. TikTok @handle, niche, schedule, target platforms..."
+            placeholder="e.g. X @handle, Facebook page, niche, schedule, target platforms..."
           />
         </div>
 

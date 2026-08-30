@@ -1,9 +1,9 @@
 {
-  "name": "publishfast",
+  "name": "9xpublishfast",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
-  "description": "Manual-first content distribution queue for AI-generated social content",
+  "description": "Manual-first content distribution queue for X (Twitter) & social content",
   "workspaces": [
     "server",
     "web"

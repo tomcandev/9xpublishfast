@@ -65,7 +65,7 @@ export function Login() {
             <BoltIcon size={30} />
           </span>
           <span style={{ fontWeight: 700, fontSize: '1.45rem', letterSpacing: '-0.025em' }}>
-            PublishFast
+            ⚡ 9xPublishFast
           </span>
         </div>
 

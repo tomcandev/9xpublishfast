@@ -46,7 +46,7 @@ export function App() {
             <span className="brand-mark" aria-hidden="true">
               <BoltIcon />
             </span>
-            PublishFast
+            9xPublishFast
           </NavLink>
 
           <nav className="nav">

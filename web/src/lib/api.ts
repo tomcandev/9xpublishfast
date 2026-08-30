@@ -1,6 +1,7 @@
 export type Role = 'admin' | 'kol'
 export type ContentStatus = 'DRAFT' | 'READY' | 'CLAIMED' | 'PUBLISHED' | 'FAILED'
-export type Platform = 'tiktok' | 'instagram' | 'youtube_shorts' | 'facebook' | 'other'
+export type ContentType = 'video' | 'carousel' | 'text'
+export type Platform = 'x' | 'facebook' | 'instagram' | 'tiktok' | 'youtube_shorts' | 'other'
 
 export interface User {
   id: string
@@ -45,7 +46,7 @@ export interface Content {
   code: string
   title: string | null
   caption: string | null
-  contentType: 'video' | 'carousel'
+  contentType: 'video' | 'carousel' | 'text'
   status: ContentStatus
   assignedUserId: string | null
   claimedBy: string | null
@@ -145,10 +146,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const PLATFORM_LABELS: Record<Platform, string> = {
-  tiktok: 'TikTok',
-  instagram: 'Instagram',
-  youtube_shorts: 'YouTube Shorts',
+  x: 'X (Twitter)',
   facebook: 'Facebook',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  youtube_shorts: 'YouTube Shorts',
   other: 'Other',
 }
 
@@ -294,7 +296,7 @@ export const api = {
         status: ContentStatus
         title: string | null
         caption: string | null
-        contentType: 'video' | 'carousel'
+        contentType: ContentType
         assignedUserId: string | null
       }>,
     ) =>
@@ -327,7 +329,7 @@ export const api = {
       request<{ token: string }>('/api/admin/tokens', { method: 'POST', body: JSON.stringify({ name }) }),
     deleteToken: (id: string) => request<{ ok: true }>(`/api/admin/tokens/${id}`, { method: 'DELETE' }),
 
-    createContent: (input: { code: string; title?: string; caption?: string; contentType: 'video' | 'carousel'; status: 'DRAFT' | 'READY' }) =>
+    createContent: (input: { code: string; title?: string; caption?: string; contentType: ContentType; status: 'DRAFT' | 'READY' }) =>
       request<{ content: Content }>('/api/ingest/contents', {
         method: 'POST',
         body: JSON.stringify(input),

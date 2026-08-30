@@ -1,12 +1,12 @@
 <div align="center">
 
-# PublishFast
+# ⚡ 9xPublishFast
 
-**A manual-first content distribution queue for short-form social content.**
+**A rapid manual-first content distribution queue for X (Twitter), Facebook & short-form social content.**
 
 Self-contained. SQLite. No external services. `npm install && npm run dev`
 
-[Live Instance](https://publishfast.tomcan.dev) · [API Documentation](docs/api.md) · [Architecture & Data Model](docs/data-model.md)
+[Live Instance](https://9xpublishfast.tomcan.dev) · [API Documentation](docs/api.md) · [Architecture & Data Model](docs/data-model.md)
 
 </div>
 
@@ -14,33 +14,33 @@ Self-contained. SQLite. No external services. `npm install && npm run dev`
 
 ## What it is
 
-AI pipelines or creators generate short-form videos and carousels, then push them into PublishFast. A KOL opens the web app, taps **Claim next post**, claims one unique post, downloads the media, copies the caption with one click, posts natively on TikTok, Instagram, YouTube Shorts, or Facebook, pastes the verified links back, and marks the task complete.
+AI pipelines or creators generate text posts, threads, images, and short-form videos, then push them into 9xPublishFast. When it is time to publish, open the web app, claim the next post, copy the text or media with one click, compose directly on X (Twitter) or Facebook, paste the verified live link back, and complete the post.
 
 ```
-AI generator ──▶ PublishFast queue ──▶ KOL claims one item
-                                            │
-                      download media + copy caption
-                                            │
-                    publish natively in the social app
-                                            │
-                        paste links back ──▶ done
+AI generator / Creator ──▶ 9xPublishFast queue ──▶ Claim post
+                                                        │
+                                copy text / download media
+                                                        │
+                              post directly on X or Facebook
+                                                        │
+                                   paste link back ──▶ done
 ```
 
 ## Why manual posting is the point
 
-Publishing short-form content through official platform APIs strips away native distribution features: in-app trending sounds, native text stickers, dynamic filters, custom cover selection, and fresh algorithmic weighting.
+Publishing content through official platform APIs often incurs strict rate limits, reduced reach, or strips away native features.
 
-PublishFast does not automate the actual post creation inside the social app. Instead, it streamlines everything around that human action: instant task claiming, high-speed asset downloads, one-tap caption copying, and multi-platform URL verification.
+9xPublishFast streamlines everything around fast human publishing: instant task claiming, 1-tap text compose on X, high-speed asset downloads, one-tap clipboard copying, and multi-platform URL verification.
 
 ## Core Features
 
-* **Atomic Claim Locking.** Two KOLs can never receive the same piece of content. Enforced via a single compare-and-swap SQL statement with comprehensive concurrency unit tests
-* **Creator Isolation.** KOLs see only available queue items and their own claimed posts. Other records return 404 to prevent enumeration
-* **Flexible Dual Login.** Sign in with either username or email in one field
-* **High-Speed Asset Delivery.** Instant one-click video downloads and automated zip bundling for multi-image carousels
-* **Multi-Platform Link Tracking.** Track individual publication links across TikTok, Instagram, YouTube Shorts, and Facebook for every piece of content
-* **AI Ingestion API.** Machine endpoints with Bearer token authentication for automated content generators
-* **Zero Infrastructure Overhead.** Single Node process and one SQLite database file with WAL mode. No Redis, no external storage buckets, and no Docker required
+* **Atomic Claim Locking.** Two creators can never receive or hold the same piece of content. Enforced via compare-and-swap SQL semantics.
+* **X & Facebook First-Class Publishing.** 1-click compose on X (`x.com/intent/post`), direct sharing to Facebook, plus Instagram, TikTok, and YouTube Shorts.
+* **Text, Image & Video Support.** Handles pure text posts/threads, multi-image carousels, and video media seamlessly.
+* **Creator Isolation.** Users see only available queue items and their own claimed posts.
+* **Flexible Dual Login.** Sign in with either username or email in one field.
+* **AI Ingestion API.** Machine endpoints with Bearer token authentication for automated content generators.
+* **Zero Infrastructure Overhead.** Single Node process and one SQLite database file with WAL mode.
 
 ## Quick Start
 
@@ -49,14 +49,14 @@ PublishFast does not automate the actual post creation inside the social app. In
 
 ```bash
 # Clone and install dependencies
-git clone https://github.com/tomcandev/publishfast.git
-cd publishfast
+git clone https://github.com/tomcandev/9xpublishfast.git
+cd 9xpublishfast
 npm install
 
 # Seed the database (creates admin and test accounts)
 npm run seed
 
-# Run local development servers (Server on :8055, Web on :5173)
+# Run local development servers
 npm run dev
 ```
 

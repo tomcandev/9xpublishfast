@@ -1,7 +1,7 @@
 {
-  "name": "PublishFast",
-  "short_name": "PublishFast",
-  "description": "Manual-first content distribution queue for social video & carousels",
+  "name": "9xPublishFast",
+  "short_name": "9xPublishFast",
+  "description": "Manual-first content distribution queue for X (Twitter), Facebook & social channels",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

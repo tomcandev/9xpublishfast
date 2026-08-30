@@ -2,8 +2,8 @@ import { sql } from 'drizzle-orm'
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 export const CONTENT_STATUSES = ['DRAFT', 'READY', 'CLAIMED', 'PUBLISHED', 'FAILED'] as const
-export const CONTENT_TYPES = ['video', 'carousel'] as const
-export const PLATFORMS = ['tiktok', 'instagram', 'youtube_shorts', 'facebook', 'other'] as const
+export const CONTENT_TYPES = ['video', 'carousel', 'text'] as const
+export const PLATFORMS = ['x', 'facebook', 'instagram', 'tiktok', 'youtube_shorts', 'other'] as const
 export const ROLES = ['admin', 'kol'] as const
 
 const now = sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`

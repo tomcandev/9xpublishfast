@@ -12,14 +12,15 @@ import {
   type Platform,
 } from '../lib/api'
 
-const PLATFORM_ORDER: Platform[] = ['tiktok', 'instagram', 'youtube_shorts', 'facebook', 'other']
+const PLATFORM_ORDER: Platform[] = ['x', 'facebook', 'instagram', 'tiktok', 'youtube_shorts', 'other']
 
 function detectPlatform(url: string): Platform {
   const lower = url.toLowerCase()
-  if (lower.includes('tiktok.com')) return 'tiktok'
-  if (lower.includes('instagram.com') || lower.includes('instagr.am')) return 'instagram'
-  if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube_shorts'
+  if (lower.includes('x.com') || lower.includes('twitter.com') || lower.includes('t.co')) return 'x'
   if (lower.includes('facebook.com') || lower.includes('fb.watch') || lower.includes('fb.com')) return 'facebook'
+  if (lower.includes('instagram.com') || lower.includes('instagr.am')) return 'instagram'
+  if (lower.includes('tiktok.com')) return 'tiktok'
+  if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube_shorts'
   return 'other'
 }
 
@@ -271,6 +272,29 @@ export function Post() {
     [content?.caption, handleShareOrDownload],
   )
 
+  const handleCopyCaptionOnly = useCallback(async () => {
+    if (!content?.caption) return
+    try {
+      await navigator.clipboard.writeText(content.caption)
+      setCaptionCopied(true)
+      setTimeout(() => setCaptionCopied(false), 3500)
+    } catch {
+      // ignore
+    }
+  }, [content?.caption])
+
+  const handleOpenX = useCallback(async () => {
+    await handleCopyCaptionOnly()
+    const text = content?.caption || ''
+    const intentUrl = text.length < 1800 ? `https://x.com/intent/post?text=${encodeURIComponent(text)}` : 'https://x.com/compose/post'
+    window.open(intentUrl, '_blank', 'noopener,noreferrer')
+  }, [content?.caption, handleCopyCaptionOnly])
+
+  const handleOpenFacebook = useCallback(async () => {
+    await handleCopyCaptionOnly()
+    window.open('https://www.facebook.com/', '_blank', 'noopener,noreferrer')
+  }, [handleCopyCaptionOnly])
+
   async function complete() {
     if (!content) return
     setBusy(true)
@@ -368,13 +392,13 @@ export function Post() {
         <>
           {/* Quick 2-step Guide Card */}
           <div className="guide-card" aria-label="Auto workflow guide">
-            <div className="guide-title">⚡ Fast 2-Step Publishing:</div>
+            <div className="guide-title">⚡ 9x Fast 2-Step Publishing:</div>
             <div className="guide-steps">
               <div className="guide-step">
                 <div className="guide-step-badge">1</div>
                 <div className="guide-step-body">
-                  <strong>1-Tap Share & Copy</strong>
-                  <span>Auto-copies caption + opens TikTok/IG share sheet to post</span>
+                  <strong>1-Tap Share / Post</strong>
+                  <span>Auto-copies text + opens X (Twitter), Facebook, or native share sheet</span>
                 </div>
               </div>
 
@@ -389,13 +413,13 @@ export function Post() {
           </div>
 
           {/* Step 1: 1-Tap Share & Copy */}
-          {content.assets.length > 0 && (
+          {content.assets.length > 0 ? (
             <div className="card">
               <div className="step-split">
                 <div className="step-split-left">
                   <div className="step-header">
                     <span className="step-badge">Step 1</span>
-                    <h2>1-Tap Share & Copy</h2>
+                    <h2>1-Tap Share & Post</h2>
                   </div>
                   <button
                     type="button"
@@ -413,6 +437,29 @@ export function Post() {
                         : `Auto-copies caption + shares ${images.length} images (${formatBytes(imagesTotalSize)})`}
                     </span>
                   </button>
+
+                  <div className="row" style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => void handleOpenX()}
+                      title="Copy caption and compose on X"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <XIcon size={14} />
+                      <span>Compose on X</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => void handleOpenFacebook()}
+                      title="Copy caption and open Facebook"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <FacebookIcon size={14} />
+                      <span>Open Facebook</span>
+                    </button>
+                  </div>
 
                   {captionCopied && (
                     <div className="center-note" style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.82rem', padding: '6px 0' }}>
@@ -445,6 +492,60 @@ export function Post() {
                   )}
                 </div>
               </div>
+            </div>
+          ) : (
+            <div className="card stack" style={{ gap: 12 }}>
+              <div className="step-header">
+                <span className="step-badge">Step 1</span>
+                <h2>Text Post — Quick Compose</h2>
+              </div>
+              <div
+                style={{
+                  background: 'var(--surface-hover)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '14px',
+                  whiteSpace: 'pre-wrap',
+                  fontSize: '0.92rem',
+                  lineHeight: 1.6,
+                }}
+              >
+                {content.caption || '(No caption text provided)'}
+              </div>
+
+              <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => void handleOpenX()}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                >
+                  <XIcon size={16} />
+                  <span>⚡ Post on X (Twitter)</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => void handleOpenFacebook()}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                >
+                  <FacebookIcon size={16} />
+                  <span>Post on Facebook</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => void handleCopyCaptionOnly()}
+                >
+                  📋 Copy Text
+                </button>
+              </div>
+
+              {captionCopied && (
+                <div className="center-note" style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.82rem' }}>
+                  ✓ Post text copied to clipboard!
+                </div>
+              )}
             </div>
           )}
 
@@ -729,17 +830,27 @@ export function Post() {
 
 function PlatformIcon({ platform }: { platform: Platform }) {
   switch (platform) {
-    case 'tiktok':
-      return <TikTokIcon />
-    case 'instagram':
-      return <InstagramIcon />
-    case 'youtube_shorts':
-      return <YouTubeIcon />
+    case 'x':
+      return <XIcon />
     case 'facebook':
       return <FacebookIcon />
+    case 'instagram':
+      return <InstagramIcon />
+    case 'tiktok':
+      return <TikTokIcon />
+    case 'youtube_shorts':
+      return <YouTubeIcon />
     default:
       return <LinkIcon />
   }
+}
+
+function XIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  )
 }
 
 function TikTokIcon({ size = 18 }: { size?: number }) {
