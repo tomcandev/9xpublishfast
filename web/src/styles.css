@@ -84,6 +84,23 @@ a { color: var(--accent); text-underline-offset: 2px; }
   margin-right: auto;
 }
 
+.brand-logo-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex: none;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.35);
+}
+
+.auth-logo-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  object-fit: cover;
+  box-shadow: 0 8px 24px rgba(56, 189, 248, 0.3);
+}
+
 .brand-mark {
   width: 26px; height: 26px;
   border-radius: 8px;

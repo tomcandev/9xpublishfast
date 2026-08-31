@@ -57,15 +57,13 @@ export function Login() {
     <div className="auth-wrap">
       <div className="auth-card stack">
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-          <span
-            className="brand-mark"
-            aria-hidden="true"
-            style={{ width: 56, height: 56, borderRadius: 16 }}
-          >
-            <BoltIcon size={30} />
-          </span>
-          <span style={{ fontWeight: 700, fontSize: '1.45rem', letterSpacing: '-0.025em' }}>
-            ⚡ 9xPublishFast
+          <img
+            src="/icon-192.png"
+            alt="9xPublishFast"
+            className="auth-logo-img"
+          />
+          <span style={{ fontWeight: 800, fontSize: '1.5rem', letterSpacing: '-0.025em' }}>
+            9xPublishFast
           </span>
         </div>
 

@@ -43,10 +43,8 @@ export function App() {
       <header className="topbar">
         <div className="topbar-inner">
           <NavLink to="/" className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              <BoltIcon />
-            </span>
-            9xPublishFast
+            <img src="/icon-192.png" alt="9xPublishFast" className="brand-logo-img" />
+            <span>9xPublishFast</span>
           </NavLink>
 
           <nav className="nav">
