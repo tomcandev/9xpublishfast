@@ -1,39 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="mono-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#18181b" />
       <stop offset="100%" stop-color="#09090b" />
     </linearGradient>
-    <linearGradient id="stroke-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#e4e4e7" />
-    </linearGradient>
-    <linearGradient id="subtle-accent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.15" />
-      <stop offset="100%" stop-color="#a855f7" stop-opacity="0" />
-    </linearGradient>
   </defs>
 
-  <!-- Dark Squircle Canvas -->
-  <rect width="512" height="512" rx="112" fill="url(#mono-bg)" />
-  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="rgba(255, 255, 255, 0.12)" stroke-width="2" />
-  
-  <!-- Ambient Inner Glow -->
-  <circle cx="256" cy="256" r="190" fill="url(#subtle-accent)" />
+  <rect width="512" height="512" rx="116" fill="url(#bg)" />
+  <rect width="504" height="504" x="4" y="4" rx="112" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2" />
 
-  <!-- Monogram 9X -->
-  <g fill="none" stroke="url(#stroke-grad)" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Number 9 (Loop + Descender) -->
-    <!-- 9 Upper Circular Loop -->
-    <path d="M190 148 C144 148 108 184 108 230 C108 276 144 312 190 312 C236 312 272 276 272 230 C272 184 236 148 190 148 Z" stroke-width="36" fill="#09090b" />
+  <!-- Monogram 9X - Stylized Edgy Geometry -->
+  <g stroke="#ffffff" stroke-width="38" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Number 9 Head Loop -->
+    <circle cx="180" cy="205" r="72" />
     
-    <!-- 9 Downward Slash -->
-    <path d="M266 230 L204 366 C198 379 185 388 170 388 C153 388 140 375 140 358" stroke-width="36" />
+    <!-- Number 9 Speed Diagonal Tail -->
+    <path d="M252 195 L125 395" />
 
-    <!-- Letter X (Interlocking Crisp Diagonals) -->
-    <!-- Backslash Line -->
-    <path d="M304 154 L414 382" stroke-width="36" />
-    <!-- Forward Slash Line -->
-    <path d="M414 154 L304 382" stroke-width="36" />
+    <!-- Letter X - Main Diagonal Stroke -->
+    <path d="M300 135 L430 395" />
+
+    <!-- Letter X - Counter Stroke with Laser Negative Space Cut -->
+    <path d="M430 135 L380 235" />
+    <path d="M350 295 L300 395" />
   </g>
 </svg>
