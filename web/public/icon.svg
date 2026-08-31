@@ -1,4 +1,50 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="112" fill="#09090b" />
-  <path d="M288 64L144 288h112l-32 160 144-224H256l32-160z" fill="#ffffff" />
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#09090b" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#030712" />
+    </linearGradient>
+    <linearGradient id="spark-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+    <linearGradient id="glow-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Base Squircle -->
+  <rect width="512" height="512" rx="112" fill="url(#bg-grad)" />
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2" />
+
+  <!-- Ambient Glow Ring -->
+  <circle cx="256" cy="256" r="180" fill="url(#glow-grad)" />
+
+  <!-- Stylized 9X Social Lightning Badge -->
+  <!-- 9 Loop & Stem -->
+  <g filter="url(#glow)">
+    <!-- Lightning & X Dynamics -->
+    <path d="M190 140 C145 140 110 175 110 220 C110 265 145 300 190 300 C235 300 270 265 270 220 C270 175 235 140 190 140 Z M190 185 C209 185 225 201 225 220 C225 239 209 255 190 255 C171 255 155 239 155 220 C155 201 171 185 190 185 Z" fill="url(#spark-grad)" />
+    
+    <!-- 9 Downward Slash connecting to lightning -->
+    <path d="M255 210 L210 372 C206 386 194 394 180 394 C164 394 150 380 150 364 C150 358 153 352 156 346 L195 270" fill="none" stroke="url(#spark-grad)" stroke-width="40" stroke-linecap="round" />
+
+    <!-- Bold X & Fast Bolt merged -->
+    <!-- X Left to Right -->
+    <path d="M290 150 L400 362" stroke="#ffffff" stroke-width="42" stroke-linecap="round" />
+    
+    <!-- X Right to Left with Lightning Arrow Accent -->
+    <path d="M400 150 L345 256 L365 256 L290 362" fill="none" stroke="url(#spark-grad)" stroke-width="42" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <!-- Central Energy Spark -->
+  <circle cx="345" cy="256" r="14" fill="#ffffff" />
+  <circle cx="345" cy="256" r="6" fill="#38bdf8" />
 </svg>
