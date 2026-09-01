@@ -233,13 +233,19 @@ export function Queue() {
             <div className="stack" style={{ gap: 10 }}>
               <div className="list">
                 {available.map((c) => (
-                  <div key={c.id} className="list-item">
+                  <div
+                    key={c.id}
+                    className="list-item"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => navigate(`/post/${c.id}`)}
+                  >
                     <div className="stack min0" style={{ gap: 3, flex: 1 }}>
                       <div className="row-tight">
                         <span className="code">{c.code}</span>
                         <span className="badge" style={{ textTransform: 'capitalize' }}>
                           {c.contentType}
                         </span>
+                        <StatusBadge status={c.status} />
                       </div>
                       <div className="truncate" style={{ color: 'var(--text-soft)', fontSize: '0.9rem' }}>
                         {c.title || c.caption || 'Untitled'}
@@ -249,7 +255,10 @@ export function Queue() {
                       type="button"
                       className="btn btn-primary btn-sm"
                       disabled={claimingId === c.id}
-                      onClick={() => void handleClaim(c.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void handleClaim(c.id)
+                      }}
                     >
                       {claimingId === c.id ? 'Claiming…' : 'Claim'}
                     </button>
