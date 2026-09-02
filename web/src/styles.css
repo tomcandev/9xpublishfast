@@ -330,6 +330,7 @@ a { color: var(--accent); text-underline-offset: 2px; }
 .badge-published { background: #eef2ff; color: #3730a3; border-color: #c7d2fe; font-weight: 650; }
 .badge-draft { background: var(--bg); color: var(--text-faint); }
 .badge-failed { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+.badge-icon-only { padding: 2px 6px; font-size: 0.72rem; line-height: 1.2; }
 
 .badge-media-type {
   font-weight: 600;

@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { STATUS_LABELS, type Asset, type ContentStatus, type ContentType } from '../lib/api'
 
-export function StatusBadge({ status, iconOnly = false }: { status: ContentStatus; iconOnly?: boolean }) {
+export function StatusBadge({ status }: { status: ContentStatus }) {
   const icon =
     status === 'READY'
       ? '🟢'
@@ -24,18 +24,9 @@ export function StatusBadge({ status, iconOnly = false }: { status: ContentStatu
             ? 'badge-failed'
             : 'badge-draft'
 
-  if (iconOnly) {
-    return (
-      <span className={`badge ${cls} badge-icon-only`} title={STATUS_LABELS[status]}>
-        {icon}
-      </span>
-    )
-  }
-
   return (
-    <span className={`badge ${cls}`}>
-      <span style={{ fontSize: '0.72em', lineHeight: 1 }}>{icon}</span>
-      <span>{STATUS_LABELS[status]}</span>
+    <span className={`badge ${cls} badge-icon-only`} title={STATUS_LABELS[status]}>
+      {icon}
     </span>
   )
 }
