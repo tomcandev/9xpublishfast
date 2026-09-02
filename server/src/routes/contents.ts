@@ -148,6 +148,33 @@ export async function contentRoutes(app: FastifyInstance) {
     return { ok: true }
   })
 
+  /** Dismiss / hide / soft-archive a post that doesn't meet requirements. */
+  app.post('/api/contents/:id/dismiss', async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const user = req.user!
+    const scope = scopeFor(user)
+
+    const row = db
+      .select()
+      .from(contents)
+      .where(scope ? and(eq(contents.id, id), scope) : eq(contents.id, id))
+      .get()
+
+    if (!row) return reply.code(404).send({ error: 'Post not found' })
+
+    // Set to DRAFT (soft-archived / hidden from queue) as required by engineering rules
+    db.update(contents)
+      .set({
+        status: 'DRAFT',
+        claimedBy: null,
+        claimedAt: null,
+      })
+      .where(eq(contents.id, id))
+      .run()
+
+    return { ok: true, id }
+  })
+
   /** Mark a claimed item finished once its links are recorded. */
   app.post('/api/contents/:id/complete', async (req, reply) => {
     const { id } = req.params as { id: string }

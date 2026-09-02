@@ -141,6 +141,72 @@ export function formatDate(iso: string | null) {
   })
 }
 
+export function ConfirmDialog({
+  title = 'Confirm Action',
+  message,
+  confirmLabel = 'Confirm',
+  cancelLabel = 'Cancel',
+  danger = false,
+  onConfirm,
+  onCancel,
+}: {
+  title?: string
+  message: string
+  confirmLabel?: string
+  cancelLabel?: string
+  danger?: boolean
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel()
+      }}
+    >
+      <div className="modal-card stack" style={{ maxWidth: 390, gap: 16 }}>
+        <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+          <span
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: danger ? 'var(--danger-soft)' : 'var(--accent-soft)',
+              color: danger ? 'var(--danger)' : 'var(--accent)',
+              display: 'grid',
+              placeItems: 'center',
+              flexShrink: 0,
+              fontSize: '1rem',
+              fontWeight: 700,
+            }}
+          >
+            {danger ? '✕' : '?'}
+          </span>
+          <h2 style={{ fontSize: '1.15rem', margin: 0 }}>{title}</h2>
+        </div>
+        <p style={{ color: 'var(--text-soft)', fontSize: '0.9rem', lineHeight: 1.45, margin: 0 }}>
+          {message}
+        </p>
+        <div className="row" style={{ justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={onCancel}>
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm ${danger ? 'btn-danger' : 'btn-primary'}`}
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function ErrorDialog({
   title = 'Error',
   message,

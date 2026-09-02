@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ReminderSettingsModal } from '../components/ReminderSettingsModal'
-import { Alert, ContentTypeBadge, Empty, Spinner, StatusBadge, formatDate } from '../components/ui'
+import { Alert, ConfirmDialog, ContentTypeBadge, Empty, Spinner, StatusBadge, formatDate } from '../components/ui'
 import { ApiError, PLATFORM_LABELS, api, type Content, type Stats } from '../lib/api'
 import { useAuth } from '../lib/auth'
 
@@ -22,6 +22,8 @@ export function Queue() {
   const [claimingId, setClaimingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [dismissingContent, setDismissingContent] = useState<Content | null>(null)
+  const [dismissingBusy, setDismissingBusy] = useState(false)
   const [showReminderModal, setShowReminderModal] = useState(false)
 
   const toggleExpand = (id: string, e: React.MouseEvent) => {
@@ -36,6 +38,19 @@ export function Queue() {
       }
       return next
     })
+  }
+
+  async function handleDismiss(c: Content) {
+    setDismissingBusy(true)
+    try {
+      await api.dismiss(c.id)
+      setDismissingContent(null)
+      await load(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to dismiss post')
+    } finally {
+      setDismissingBusy(false)
+    }
   }
 
   const load = useCallback(
@@ -295,18 +310,37 @@ export function Queue() {
                           </>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        disabled={claimingId === c.id}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          void handleClaim(c.id)
-                        }}
-                        style={{ flexShrink: 0, marginTop: 2 }}
-                      >
-                        {claimingId === c.id ? 'Claiming…' : 'Claim'}
-                      </button>
+                      <div className="stack" style={{ gap: 6, flexShrink: 0, alignItems: 'flex-end', marginTop: 2 }}>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          disabled={claimingId === c.id}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void handleClaim(c.id)
+                          }}
+                        >
+                          {claimingId === c.id ? 'Claiming…' : 'Claim'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDismissingContent(c)
+                          }}
+                          style={{
+                            color: 'var(--danger)',
+                            fontSize: '0.74rem',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            opacity: 0.85,
+                          }}
+                          title="Hide / decline this post from queue"
+                        >
+                          ✕ Hide
+                        </button>
+                      </div>
                     </div>
                   )
                 })}
@@ -409,6 +443,18 @@ export function Queue() {
       </nav>
 
       {showReminderModal && <ReminderSettingsModal onClose={() => setShowReminderModal(false)} />}
+
+      {dismissingContent && (
+        <ConfirmDialog
+          title="Hide / Decline Post?"
+          message={`Are you sure you want to remove "${dismissingContent.code} - ${dismissingContent.title || 'Untitled'}" from your queue? It will be archived and hidden because it doesn't meet requirements.`}
+          confirmLabel={dismissingBusy ? 'Hiding…' : 'Yes, Hide Post'}
+          cancelLabel="Cancel"
+          danger={true}
+          onConfirm={() => void handleDismiss(dismissingContent)}
+          onCancel={() => !dismissingBusy && setDismissingContent(null)}
+        />
+      )}
     </div>
   )
 }

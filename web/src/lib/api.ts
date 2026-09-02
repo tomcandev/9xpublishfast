@@ -239,6 +239,9 @@ export const api = {
 
   release: (id: string) => request<{ ok: true }>(`/api/contents/${id}/release`, { method: 'POST' }),
 
+  dismiss: (id: string) =>
+    request<{ ok: true; id: string }>(`/api/contents/${id}/dismiss`, { method: 'POST' }),
+
   complete: (id: string) =>
     request<{ content: Content }>(`/api/contents/${id}/complete`, { method: 'POST' }),
 
