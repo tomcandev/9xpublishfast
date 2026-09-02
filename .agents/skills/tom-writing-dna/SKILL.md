@@ -36,6 +36,8 @@ Every piece of content must pass the following pre-flight checks:
 | Rule | Requirement |
 |---|---|
 | **Zero Em Dashes (`—`)** | Never use `—`. Replace with commas, periods, colons, or parentheses. Em dashes are the #1 tell of AI writing. |
+| **No Initial Capital / Lowercase Style** | Prefer casual uncapitalized text at the start of sentences/paragraphs on X/Twitter for an authentic builder tone. |
+| **No Trailing Period (`.`) at End** | Never put a period at the end of the final paragraph or closing punchline on social posts. Eliminates stiff formal tone. |
 | **Zero AI Blacklist Vocabulary** | Strictly ban empty buzzwords and hyperbolic metaphors (see Blacklist below). |
 | **Zero Chatbot Artifacts** | Never include conversational filler ("In today's fast-paced world...", "Let's dive in", "Ever wondered why...", "Without further ado"). |
 | **Zero Negative Parallelism** | Avoid "It's not just X, it's Y" or "Not only... but also...". State the direct point clearly. |
