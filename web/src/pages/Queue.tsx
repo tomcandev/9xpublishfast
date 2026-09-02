@@ -210,17 +210,16 @@ export function Queue() {
             <div className="list">
               {mine.map((c) => (
                 <Link key={c.id} to={`/post/${c.id}`} className="list-item">
-                  <div className="stack min0" style={{ gap: 3, flex: 1 }}>
+                  <div className="stack min0" style={{ gap: 4, flex: 1 }}>
                     <div className="row-tight">
                       <span className="code">{c.code}</span>
                       <ContentTypeBadge contentType={c.contentType} assets={c.assets} />
                       <StatusBadge status={c.status} />
                     </div>
-                    <div className="truncate" style={{ color: 'var(--text-soft)', fontSize: '0.9rem' }}>
-                      {c.title || c.caption || 'Untitled'}
-                    </div>
+                    {c.title && <div className="list-item-title">{c.title}</div>}
+                    {c.caption && <div className="list-item-body">{c.caption}</div>}
                   </div>
-                  <span style={{ color: 'var(--text-faint)' }}>›</span>
+                  <span style={{ color: 'var(--text-faint)', marginTop: 2 }}>›</span>
                 </Link>
               ))}
             </div>
@@ -237,15 +236,14 @@ export function Queue() {
                     style={{ cursor: 'pointer' }}
                     onClick={() => navigate(`/post/${c.id}`)}
                   >
-                    <div className="stack min0" style={{ gap: 3, flex: 1 }}>
+                    <div className="stack min0" style={{ gap: 4, flex: 1 }}>
                       <div className="row-tight">
                         <span className="code">{c.code}</span>
                         <ContentTypeBadge contentType={c.contentType} assets={c.assets} />
                         <StatusBadge status={c.status} />
                       </div>
-                      <div className="truncate" style={{ color: 'var(--text-soft)', fontSize: '0.9rem' }}>
-                        {c.title || c.caption || 'Untitled'}
-                      </div>
+                      {c.title && <div className="list-item-title">{c.title}</div>}
+                      {c.caption && <div className="list-item-body">{c.caption}</div>}
                     </div>
                     <button
                       type="button"
@@ -255,6 +253,7 @@ export function Queue() {
                         e.stopPropagation()
                         void handleClaim(c.id)
                       }}
+                      style={{ flexShrink: 0, marginTop: 2 }}
                     >
                       {claimingId === c.id ? 'Claiming…' : 'Claim'}
                     </button>
@@ -288,11 +287,10 @@ export function Queue() {
                       <ContentTypeBadge contentType={c.contentType} assets={c.assets} />
                       <span className="hint">{formatDate(c.claimedAt)}</span>
                     </div>
-                    <div className="truncate" style={{ color: 'var(--text)', fontSize: '0.92rem', fontWeight: 550 }}>
-                      {c.title || c.caption || 'Untitled'}
-                    </div>
+                    {c.title && <div className="list-item-title">{c.title}</div>}
+                    {c.caption && <div className="list-item-body">{c.caption}</div>}
                     {c.publications.some((p) => p.publishedUrl) && (
-                      <div className="row" style={{ gap: 6, marginTop: 2 }}>
+                      <div className="row" style={{ gap: 6, marginTop: 6 }}>
                         {c.publications
                           .filter((p) => p.publishedUrl)
                           .map((p) => (
@@ -311,7 +309,7 @@ export function Queue() {
                       </div>
                     )}
                   </div>
-                  <span style={{ color: 'var(--text-faint)' }}>›</span>
+                  <span style={{ color: 'var(--text-faint)', marginTop: 2 }}>›</span>
                 </Link>
               ))}
             </div>

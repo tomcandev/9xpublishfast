@@ -13,19 +13,19 @@ export function StatusBadge({ status }: { status: ContentStatus }) {
             ? '🔴'
             : '⚪'
 
-  const cls =
-    status === 'READY'
-      ? 'badge-ready'
-      : status === 'CLAIMED'
-        ? 'badge-claimed'
-        : status === 'PUBLISHED'
-          ? 'badge-published'
-          : status === 'FAILED'
-            ? 'badge-failed'
-            : 'badge-draft'
-
   return (
-    <span className={`badge ${cls} badge-icon-only`} title={STATUS_LABELS[status]}>
+    <span
+      className="status-icon-dot"
+      title={STATUS_LABELS[status]}
+      style={{
+        fontSize: '0.82rem',
+        lineHeight: 1,
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '0 2px',
+        userSelect: 'none',
+      }}
+    >
       {icon}
     </span>
   )

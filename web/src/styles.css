@@ -430,11 +430,32 @@ a { color: var(--accent); text-underline-offset: 2px; }
   padding: 15px 17px;
   display: flex;
   gap: 12px;
-  align-items: center;
+  align-items: flex-start;
   text-decoration: none;
   color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .list-item:hover { border-color: var(--border-strong); }
+
+.list-item-title {
+  color: var(--text);
+  font-weight: 650;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.list-item-body {
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 3px;
+}
 
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .min0 { min-width: 0; }
