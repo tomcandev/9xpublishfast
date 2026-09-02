@@ -21,7 +21,22 @@ export function Queue() {
   const [touchStartY, setTouchStartY] = useState<number | null>(null)
   const [claimingId, setClaimingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [showReminderModal, setShowReminderModal] = useState(false)
+
+  const toggleExpand = (id: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
 
   const load = useCallback(
     async (silent = false) => {
@@ -208,34 +223,10 @@ export function Queue() {
           {/* Active / In-progress posts held by KOL */}
           {mine.length > 0 && (
             <div className="list">
-              {mine.map((c) => (
-                <Link key={c.id} to={`/post/${c.id}`} className="list-item">
-                  <div className="stack min0" style={{ gap: 4, flex: 1 }}>
-                    <div className="row-tight">
-                      <span className="code">{c.code}</span>
-                      <ContentTypeBadge contentType={c.contentType} assets={c.assets} />
-                      <StatusBadge status={c.status} />
-                    </div>
-                    {c.title && <div className="list-item-title">{c.title}</div>}
-                    {c.caption && <div className="list-item-body">{c.caption}</div>}
-                  </div>
-                  <span style={{ color: 'var(--text-faint)', marginTop: 2 }}>›</span>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {/* Available posts up to 5 */}
-          {available.length > 0 && (
-            <div className="stack" style={{ gap: 10 }}>
-              <div className="list">
-                {available.map((c) => (
-                  <div
-                    key={c.id}
-                    className="list-item"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => navigate(`/post/${c.id}`)}
-                  >
+              {mine.map((c) => {
+                const isExpanded = expandedIds.has(c.id)
+                return (
+                  <Link key={c.id} to={`/post/${c.id}`} className="list-item">
                     <div className="stack min0" style={{ gap: 4, flex: 1 }}>
                       <div className="row-tight">
                         <span className="code">{c.code}</span>
@@ -243,22 +234,82 @@ export function Queue() {
                         <StatusBadge status={c.status} />
                       </div>
                       {c.title && <div className="list-item-title">{c.title}</div>}
-                      {c.caption && <div className="list-item-body">{c.caption}</div>}
+                      {c.caption && (
+                        <>
+                          <div className={`list-item-body ${isExpanded ? 'expanded' : ''}`}>
+                            {c.caption}
+                          </div>
+                          {c.caption.length > 120 && (
+                            <button
+                              type="button"
+                              className="btn-read-more"
+                              onClick={(e) => toggleExpand(c.id, e)}
+                            >
+                              {isExpanded ? '▲ Show less' : '▼ Read more'}
+                            </button>
+                          )}
+                        </>
+                      )}
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      disabled={claimingId === c.id}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        void handleClaim(c.id)
-                      }}
-                      style={{ flexShrink: 0, marginTop: 2 }}
+                    <span style={{ color: 'var(--text-faint)', marginTop: 2 }}>›</span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Available posts up to 5 */}
+          {available.length > 0 && (
+            <div className="stack" style={{ gap: 10 }}>
+              <div className="list">
+                {available.map((c) => {
+                  const isExpanded = expandedIds.has(c.id)
+                  return (
+                    <div
+                      key={c.id}
+                      className="list-item"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => navigate(`/post/${c.id}`)}
                     >
-                      {claimingId === c.id ? 'Claiming…' : 'Claim'}
-                    </button>
-                  </div>
-                ))}
+                      <div className="stack min0" style={{ gap: 4, flex: 1 }}>
+                        <div className="row-tight">
+                          <span className="code">{c.code}</span>
+                          <ContentTypeBadge contentType={c.contentType} assets={c.assets} />
+                          <StatusBadge status={c.status} />
+                        </div>
+                        {c.title && <div className="list-item-title">{c.title}</div>}
+                        {c.caption && (
+                          <>
+                            <div className={`list-item-body ${isExpanded ? 'expanded' : ''}`}>
+                              {c.caption}
+                            </div>
+                            {c.caption.length > 120 && (
+                              <button
+                                type="button"
+                                className="btn-read-more"
+                                onClick={(e) => toggleExpand(c.id, e)}
+                              >
+                                {isExpanded ? '▲ Show less' : '▼ Read more'}
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        disabled={claimingId === c.id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          void handleClaim(c.id)
+                        }}
+                        style={{ flexShrink: 0, marginTop: 2 }}
+                      >
+                        {claimingId === c.id ? 'Claiming…' : 'Claim'}
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
 
               {(stats?.available ?? 0) > 5 && (
@@ -279,39 +330,57 @@ export function Queue() {
             <Empty>You haven’t published any posts yet.</Empty>
           ) : (
             <div className="list">
-              {historyItems.map((c) => (
-                <Link key={c.id} to={`/post/${c.id}`} className="list-item">
-                  <div className="stack min0" style={{ gap: 4, flex: 1 }}>
-                    <div className="row-tight">
-                      <span className="code">{c.code}</span>
-                      <ContentTypeBadge contentType={c.contentType} assets={c.assets} />
-                      <span className="hint">{formatDate(c.claimedAt)}</span>
-                    </div>
-                    {c.title && <div className="list-item-title">{c.title}</div>}
-                    {c.caption && <div className="list-item-body">{c.caption}</div>}
-                    {c.publications.some((p) => p.publishedUrl) && (
-                      <div className="row" style={{ gap: 6, marginTop: 6 }}>
-                        {c.publications
-                          .filter((p) => p.publishedUrl)
-                          .map((p) => (
-                            <a
-                              key={p.id}
-                              className="badge"
-                              href={p.publishedUrl!}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              style={{ textDecoration: 'none' }}
-                            >
-                              {PLATFORM_LABELS[p.platform]} ↗
-                            </a>
-                          ))}
+              {historyItems.map((c) => {
+                const isExpanded = expandedIds.has(c.id)
+                return (
+                  <Link key={c.id} to={`/post/${c.id}`} className="list-item">
+                    <div className="stack min0" style={{ gap: 4, flex: 1 }}>
+                      <div className="row-tight">
+                        <span className="code">{c.code}</span>
+                        <ContentTypeBadge contentType={c.contentType} assets={c.assets} />
+                        <span className="hint">{formatDate(c.claimedAt)}</span>
                       </div>
-                    )}
-                  </div>
-                  <span style={{ color: 'var(--text-faint)', marginTop: 2 }}>›</span>
-                </Link>
-              ))}
+                      {c.title && <div className="list-item-title">{c.title}</div>}
+                      {c.caption && (
+                        <>
+                          <div className={`list-item-body ${isExpanded ? 'expanded' : ''}`}>
+                            {c.caption}
+                          </div>
+                          {c.caption.length > 120 && (
+                            <button
+                              type="button"
+                              className="btn-read-more"
+                              onClick={(e) => toggleExpand(c.id, e)}
+                            >
+                              {isExpanded ? '▲ Show less' : '▼ Read more'}
+                            </button>
+                          )}
+                        </>
+                      )}
+                      {c.publications.some((p) => p.publishedUrl) && (
+                        <div className="row" style={{ gap: 6, marginTop: 6 }}>
+                          {c.publications
+                            .filter((p) => p.publishedUrl)
+                            .map((p) => (
+                              <a
+                                key={p.id}
+                                className="badge"
+                                href={p.publishedUrl!}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ textDecoration: 'none' }}
+                              >
+                                {PLATFORM_LABELS[p.platform]} ↗
+                              </a>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                    <span style={{ color: 'var(--text-faint)', marginTop: 2 }}>›</span>
+                  </Link>
+                )
+              })}
             </div>
           )}
         </>
