@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Alert, ContentTypeBadge, CopyButton, Empty, Snackbar, Spinner, StatusBadge, formatBytes } from '../components/ui'
+import { Alert, ConfirmDialog, ContentTypeBadge, CopyButton, Empty, Snackbar, Spinner, StatusBadge, formatBytes } from '../components/ui'
 import {
   PLATFORM_LABELS,
   api,
@@ -36,6 +36,7 @@ export function Post() {
   const [downloading, setDownloading] = useState(false)
   const [captionCopied, setCaptionCopied] = useState(false)
   const [mode, setMode] = useState<'auto' | 'manual'>('auto')
+  const [pendingCompleteUrl, setPendingCompleteUrl] = useState<string | null>(null)
   const debounceTimers = useRef<Partial<Record<Platform, NodeJS.Timeout>>>({})
   const preloadedFilesRef = useRef<File[] | null>(null)
 
@@ -96,13 +97,20 @@ export function Post() {
   }, [content?.assets, content?.code])
 
   const doSaveLink = useCallback(
-    async (platform: Platform, url: string) => {
+    async (platform: Platform, url: string, promptComplete = false) => {
       if (!content) return
       const trimmed = url.trim()
       if (!trimmed) return
       setSaveStatus((prev) => ({ ...prev, [platform]: 'saving' }))
       setError(null)
       try {
+        if (content.status === 'READY') {
+          try {
+            await api.claim(content.id)
+          } catch {
+            // ignore if already claimed
+          }
+        }
         await api.savePublication({ contentId: content.id, platform, publishedUrl: trimmed })
         setSaveStatus((prev) => ({ ...prev, [platform]: 'saved' }))
         const updated = await api.content(content.id)
@@ -110,6 +118,10 @@ export function Post() {
         setTimeout(() => {
           setSaveStatus((prev) => ({ ...prev, [platform]: 'idle' }))
         }, 2500)
+
+        if (promptComplete && (trimmed.startsWith('http://') || trimmed.startsWith('https://')) && updated.content.status !== 'PUBLISHED') {
+          setPendingCompleteUrl(trimmed)
+        }
       } catch (err) {
         setSaveStatus((prev) => ({ ...prev, [platform]: 'idle' }))
         setError(err instanceof Error ? err.message : 'Failed to save link')
@@ -154,14 +166,14 @@ export function Post() {
         if (text && text.trim()) {
           const trimmed = text.trim()
           setUrls((u) => ({ ...u, [platform]: trimmed }))
-          await doSaveLink(platform, trimmed)
+          await doSaveLink(platform, trimmed, true)
         }
       } catch {
         const val = window.prompt('Paste published link:')
         if (val && val.trim()) {
           const trimmed = val.trim()
           setUrls((u) => ({ ...u, [platform]: trimmed }))
-          await doSaveLink(platform, trimmed)
+          await doSaveLink(platform, trimmed, true)
         }
       }
     },
@@ -179,7 +191,7 @@ export function Post() {
     if (!trimmed) return
     const platform = detectPlatform(trimmed)
     setUrls((u) => ({ ...u, [platform]: trimmed }))
-    await doSaveLink(platform, trimmed)
+    await doSaveLink(platform, trimmed, true)
   }, [doSaveLink])
 
   const handleDownloadAllSeparate = useCallback(
@@ -300,6 +312,13 @@ export function Post() {
     setBusy(true)
     setError(null)
     try {
+      if (content.status === 'READY') {
+        try {
+          await api.claim(content.id)
+        } catch {
+          // ignore
+        }
+      }
       await api.complete(content.id)
       navigate('/')
     } catch (err) {
@@ -809,19 +828,35 @@ export function Post() {
       )}
 
       {/* ---- finish ---- */}
-      {content.status === 'CLAIMED' && (
-        <div className="stack">
+      {(content.status === 'CLAIMED' || content.status === 'READY') && (
+        <div className="stack" style={{ marginTop: 12 }}>
           <button className="btn btn-primary btn-lg btn-block" onClick={complete} disabled={busy || savedCount === 0}>
-            {busy ? 'Saving…' : 'Complete'}
+            {busy ? 'Saving…' : '✓ Complete Post'}
           </button>
           {savedCount === 0 && <p className="hint">Please paste at least one published link before completing.</p>}
-          <button className="btn btn-danger btn-block" onClick={release} disabled={busy}>
-            Return post to queue
-          </button>
+          {content.status === 'CLAIMED' && (
+            <button className="btn btn-danger btn-block" onClick={release} disabled={busy}>
+              Return post to queue
+            </button>
+          )}
         </div>
       )}
 
       {content.status === 'PUBLISHED' && <Alert kind="ok">This post has been published. Thank you!</Alert>}
+
+      {pendingCompleteUrl && (
+        <ConfirmDialog
+          title="Mark Post as Published?"
+          message={`Live post link detected: "${pendingCompleteUrl}". Have you finished publishing this post? Confirm to mark it as PUBLISHED.`}
+          confirmLabel="✓ Complete & Mark Published"
+          cancelLabel="Keep Editing"
+          onConfirm={() => {
+            setPendingCompleteUrl(null)
+            void complete()
+          }}
+          onCancel={() => setPendingCompleteUrl(null)}
+        />
+      )}
     </div>
   )
 }
