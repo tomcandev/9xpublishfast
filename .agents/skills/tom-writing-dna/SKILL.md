@@ -71,20 +71,33 @@ tiên tiến                      khẳng định vị thế          vươn t�
 
 ## 3. Multi-Format Writing Playbooks
 
-### A. Twitter / X Short Posts (50–85 words)
-- **Structure:**
-  1. **Direct Hook:** State the practical problem or observation without hype.
-  2. **Core Lesson / Mechanism:** 1–2 short sentences explaining what actually worked in production.
-  3. **Pragmatic Takeaway:** A punchy closing principle (e.g. *"Fewer moving parts means fewer edge cases in production."*).
-- **Style:** Under 280 characters or 2–3 short paragraphs. Zero hashtag stuffing. Reads like a quick note jotted down after shipping code.
+### A. Twitter / X Short Posts (Nikita Bier Authority Formula)
+*Guiding compass for majority of posts (gợi ý chủ đạo cho đa số bài, áp dụng linh hoạt, không gò bó cứng nhắc):*
 
-*Example:*
+1. **Deep Domain Focus:** Pick one subject area you know intimately from 13+ years of building (Android/Kotlin architecture, real-world AI pair-programming, friction-less indie software).
+2. **One Unexpected Insight:** Share a non-obvious observation, counter-intuitive trap, or pragmatic discovery from real hands-on experience (not generic tutorial tips).
+3. **Under 5 Sentences (50–85 words):** Punchy, dense with practical value, zero fluff, zero AI buzzwords.
+4. **Structure:**
+   - *Sentence 1–2 (The Friction/Observation):* State the counter-intuitive problem or observation directly.
+   - *Sentence 3–4 (The Real Mechanism):* Explain what actually worked in production.
+   - *Sentence 5 (The Takeaway):* A memorable, practical takeaway (e.g. *"Constraints don't slow AI down; they eliminate hallucinations."*).
+
+*Example 1 (Mobile / Architecture):*
 ```text
 Testing mobile apps used to mean fighting heavy emulators that freeze your machine every 10 minutes.
 
-Running declarative E2E flows with Maestro directly on real devices changed the feedback loop completely. No simulator lag, consistent assertions on both iOS and Android.
+Running declarative E2E flows with Maestro directly on real devices changed our feedback loop completely. No simulator lag, consistent assertions on both iOS and Android.
 
 The simpler the test toolchain, the more likely you actually run it before shipping.
+```
+
+*Example 2 (AI Pair-Programming):*
+```text
+Building with AI agents works best when you treat them as pair programmers rather than black boxes.
+
+Give them strict anti-AI filter rules, direct access to run unit tests, and automatic verification steps before committing code.
+
+Constraints don't slow AI down; they eliminate hallucinations.
 ```
 
 ### B. Technical Engineering Deep-Dives (cotsong.dev / Tech Blogs)
