@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
-import { Alert, Spinner, StatusBadge, formatDate } from '../components/ui'
+import { Alert, ContentTypeBadge, Spinner, StatusBadge, formatDate } from '../components/ui'
 import { api, assetUrl, type Asset, type Content, type ContentStatus, type ContentType, type HookPerformanceItem, type MetricSummary, type Role, type User } from '../lib/api'
 
 type Tab = 'contents' | 'analytics' | 'users' | 'tokens'
@@ -341,7 +341,12 @@ function ContentsTab() {
                   <td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {c.title || <span className="hint">—</span>}
                   </td>
-                  <td><StatusBadge status={c.status} /></td>
+                  <td>
+                    <div className="row-tight" style={{ gap: 4 }}>
+                      <ContentTypeBadge contentType={c.contentType} assets={c.assets} />
+                      <StatusBadge status={c.status} />
+                    </div>
+                  </td>
                   <td className="hint">{formatDate(c.createdAt)}</td>
                   <td>
                     <div className="row-tight">

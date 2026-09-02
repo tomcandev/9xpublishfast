@@ -1,7 +1,18 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { STATUS_LABELS, type ContentStatus } from '../lib/api'
+import { STATUS_LABELS, type Asset, type ContentStatus, type ContentType } from '../lib/api'
 
-export function StatusBadge({ status }: { status: ContentStatus }) {
+export function StatusBadge({ status, iconOnly = false }: { status: ContentStatus; iconOnly?: boolean }) {
+  const icon =
+    status === 'READY'
+      ? '🟢'
+      : status === 'CLAIMED'
+        ? '🟡'
+        : status === 'PUBLISHED'
+          ? '✅'
+          : status === 'FAILED'
+            ? '🔴'
+            : '⚪'
+
   const cls =
     status === 'READY'
       ? 'badge-ready'
@@ -9,8 +20,58 @@ export function StatusBadge({ status }: { status: ContentStatus }) {
         ? 'badge-claimed'
         : status === 'PUBLISHED'
           ? 'badge-published'
-          : 'badge-draft'
-  return <span className={`badge ${cls}`}>{STATUS_LABELS[status]}</span>
+          : status === 'FAILED'
+            ? 'badge-failed'
+            : 'badge-draft'
+
+  if (iconOnly) {
+    return (
+      <span className={`badge ${cls} badge-icon-only`} title={STATUS_LABELS[status]}>
+        {icon}
+      </span>
+    )
+  }
+
+  return (
+    <span className={`badge ${cls}`}>
+      <span style={{ fontSize: '0.72em', lineHeight: 1 }}>{icon}</span>
+      <span>{STATUS_LABELS[status]}</span>
+    </span>
+  )
+}
+
+export function ContentTypeBadge({
+  contentType,
+  assets,
+}: {
+  contentType: ContentType
+  assets?: Asset[]
+}) {
+  if (contentType === 'text') {
+    return (
+      <span className="badge badge-media-type badge-text-type" title="1 Text Post">
+        1 📝
+      </span>
+    )
+  }
+  if (contentType === 'video') {
+    const vids = assets?.filter((a) => a.type === 'video').length || 1
+    return (
+      <span className="badge badge-media-type badge-video-type" title={`${vids} Video${vids > 1 ? 's' : ''}`}>
+        {vids} 🎬
+      </span>
+    )
+  }
+  // Carousel / image
+  const imgs =
+    assets?.filter((a) => a.type === 'image').length ||
+    assets?.length ||
+    1
+  return (
+    <span className="badge badge-media-type badge-carousel-type" title={`${imgs} Image${imgs > 1 ? 's' : ''}`}>
+      {imgs} 🖼️
+    </span>
+  )
 }
 
 /** Copy button that confirms inline — the one-tap caption copy from plan.txt §23. */
