@@ -73,19 +73,36 @@ tiên tiến                      khẳng định vị thế          vươn t�
 
 ## 3. Multi-Format Writing Playbooks
 
-### A. Twitter / X Short Posts (Nikita Bier Authority Formula)
+### A. Twitter / X Viral Playbooks (Nikita Bier Authority + Daniel Ch 69.8M System)
 *Guiding compass for majority of posts (gợi ý chủ đạo cho đa số bài, áp dụng linh hoạt, không gò bó cứng nhắc):*
 
-1. **Deep Domain Focus:** Pick one subject area you know intimately from 13+ years of building (Android/Kotlin architecture, real-world AI pair-programming, friction-less indie software).
-2. **One Unexpected Insight:** Share a non-obvious observation, counter-intuitive trap, or pragmatic discovery from real hands-on experience (not generic tutorial tips).
-3. **Under 5 Sentences (50–85 words):** Punchy, dense with practical value, zero fluff, zero AI buzzwords.
-4. **Hook Archetypes & Emotional Tension (Tạo độ giật dừng mắt / Scroll-Stopping Hooks):**
-   - **Archetype 1 - The "Wait," Pattern Interrupt:** Breaks passive scrolling by challenging common dev assumptions (e.g. *"wait, spending hours massaging prompts is the slowest way to fix an ai agent"*).
-   - **Archetype 2 - The "What Breaks" Production Reality:** Highlights unexpected failure modes in real code (e.g. *"what breaks when you let ai agents write code alone"* / *"what broke our 60fps compose list in production"*).
-   - **Archetype 3 - The "Painful Truth" Indie Friction:** Calls out hard-learned product lessons (e.g. *"the painful truth about building indie mvps: nobody cares about your settings tab"*).
-   - **Archetype 4 - Direct Natural Observation:** Skips formal hooks and jumps straight into authentic developer reflections (e.g. *"testing mobile apps used to mean fighting heavy emulators..."*).
-5. **Structure:**
-   - *Sentence 1–2 (Emotional Tension / The Friction):* State the unexpected interrupt or failure mode directly.
+1. **The 2 Core Plays (Daniel Ch 69.8M Formula):**
+   - **Play 1 - Repackage Proven Attention (min_faves:500 / 2000):** Take something people already care about (a viral launch, code teardown, architecture debate, or screenshot). Don't just rewrite it; elevate it from a 6/10 to a 7/10 with a cleaner visual, less explanation, or a bolder judgment.
+   - **Play 2 - Create Human Tension from Raw Material:** Start with real builds, conversations, or commit logs. Uncover the friction, surprising implication, or counter-intuitive truth developers secretly feel but haven't seen stated plainly.
+
+2. **The "Judgment vs Explanation" Rule (The 8-Word Post Secret):**
+   - *Never write an explanatory caption for visual media.* Explaining the image kills curiosity.
+   - *Write a judgment instead:* State a bold, subjective verdict (e.g. *"best cold email i've seen in my life"*, *"the cleanest compose state pattern in production"*, *"the fastest way to break an ai agent"*).
+   - The reader clicks/opens the media to see whether your judgment is right.
+   - **Minimum Viable Caption:** Prefer the smallest caption that makes the media interesting. Never give away the punchline upfront.
+
+3. **Multi-Angle Syndicate (One Idea Travels Across Multiple Posts):**
+   - One winning build or lesson should yield at least 3 distinct posts:
+     - Post A: Direct visual demo / screenshot + bold judgment.
+     - Post B: The failure mode ("what broke in production").
+     - Post C: The core principle ("fewer moving parts").
+
+4. **Deep Domain Focus:** Pick one subject area you know intimately from 13+ years of building (Android/Kotlin architecture, real-world AI pair-programming, friction-less indie software). Under 5 sentences (50–85 words), zero fluff, zero AI buzzwords.
+
+5. **Hook Archetypes & Emotional Tension (Scroll-Stopping Hooks):**
+   - **Archetype 1 - The "Wait," Pattern Interrupt:** (e.g. *"wait, prompt tuning isn't why your ai agent fails"*).
+   - **Archetype 2 - The "What Breaks" Production Reality:** (e.g. *"what breaks when you let ai agents write code alone"*).
+   - **Archetype 3 - Bold Judgment Hook:** (e.g. *"the cleanest compose state pattern i've seen in production"*).
+   - **Archetype 4 - The "Painful Truth" Indie Friction:** (e.g. *"the painful truth about building indie mvps: nobody cares about your settings tab"*).
+   - **Archetype 5 - Direct Natural Observation:** (e.g. *"testing mobile apps used to mean fighting heavy emulators..."*).
+
+6. **Structure:**
+   - *Sentence 1–2 (Emotional Tension / Bold Judgment):* State the unexpected interrupt or failure mode directly.
    - *Sentence 3–4 (The Real Mechanism):* Explain what actually worked in production.
    - *Sentence 5 (The Takeaway):* A memorable, practical takeaway (e.g. *"Constraints eliminate hallucinations faster than clever prompting"*).
 
@@ -109,6 +126,11 @@ spending hours massaging prompts is the slowest way to fix an ai agent
 what actually works: give it strict anti-ai rules, a terminal to run tests, and automatic verification before every commit
 
 constraints eliminate hallucinations faster than clever prompting
+```
+
+*Example 3 (Bold Judgment - 8-word style with image/proof):*
+```text
+the cleanest compose state pattern i've seen in production
 ```
 
 ### B. Technical Engineering Deep-Dives (cotsong.dev / Tech Blogs)
