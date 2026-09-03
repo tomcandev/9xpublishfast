@@ -135,4 +135,36 @@ export async function ingestRoutes(app: FastifyInstance) {
         .map(({ filePath: _hidden, ...rest }) => rest),
     })
   })
+
+  /** Ingest X notes into secondbrain inbox (called by local Mac scraper) */
+  app.post('/api/ingest/x-inbox', async (req, reply) => {
+    const xSchema = z.object({
+      notes: z.array(
+        z.object({
+          filename: z.string().min(1),
+          content: z.string().min(1),
+        })
+      ),
+    })
+
+    const parsed = xSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'Invalid payload' })
+    }
+
+    const targetDir = join(config.dataDir, '..', '..', 'tomcandev', 'secondbrain', 'raw_data', '_inbox', 'x')
+    const fs = await import('node:fs/promises')
+    await fs.mkdir(targetDir, { recursive: true })
+
+    let saved = 0
+    for (const note of parsed.data.notes) {
+      const sanitizedName = note.filename.replace(/[^a-zA-Z0-9._-]/g, '')
+      if (!sanitizedName) continue
+      const targetPath = join(targetDir, sanitizedName)
+      await fs.writeFile(targetPath, note.content, 'utf-8')
+      saved++
+    }
+
+    return reply.send({ success: true, savedCount: saved })
+  })
 }
