@@ -79,27 +79,36 @@ tiên tiến                      khẳng định vị thế          vươn t�
 1. **Deep Domain Focus:** Pick one subject area you know intimately from 13+ years of building (Android/Kotlin architecture, real-world AI pair-programming, friction-less indie software).
 2. **One Unexpected Insight:** Share a non-obvious observation, counter-intuitive trap, or pragmatic discovery from real hands-on experience (not generic tutorial tips).
 3. **Under 5 Sentences (50–85 words):** Punchy, dense with practical value, zero fluff, zero AI buzzwords.
-4. **Structure:**
-   - *Sentence 1–2 (The Friction/Observation):* State the counter-intuitive problem or observation directly.
+4. **Hook Archetypes & Emotional Tension (Tạo độ giật dừng mắt / Scroll-Stopping Hooks):**
+   - **Archetype 1 - The "Wait," Pattern Interrupt:** Breaks passive scrolling by challenging common dev assumptions (e.g. *"wait, spending hours massaging prompts is the slowest way to fix an ai agent"*).
+   - **Archetype 2 - The "What Breaks" Production Reality:** Highlights unexpected failure modes in real code (e.g. *"what breaks when you let ai agents write code alone"* / *"what broke our 60fps compose list in production"*).
+   - **Archetype 3 - The "Painful Truth" Indie Friction:** Calls out hard-learned product lessons (e.g. *"the painful truth about building indie mvps: nobody cares about your settings tab"*).
+   - **Archetype 4 - Direct Natural Observation:** Skips formal hooks and jumps straight into authentic developer reflections (e.g. *"testing mobile apps used to mean fighting heavy emulators..."*).
+5. **Structure:**
+   - *Sentence 1–2 (Emotional Tension / The Friction):* State the unexpected interrupt or failure mode directly.
    - *Sentence 3–4 (The Real Mechanism):* Explain what actually worked in production.
-   - *Sentence 5 (The Takeaway):* A memorable, practical takeaway (e.g. *"Constraints don't slow AI down; they eliminate hallucinations."*).
+   - *Sentence 5 (The Takeaway):* A memorable, practical takeaway (e.g. *"Constraints eliminate hallucinations faster than clever prompting"*).
 
-*Example 1 (Mobile / Architecture):*
+*Example 1 (Mobile / Architecture - Tension Hook):*
 ```text
-Testing mobile apps used to mean fighting heavy emulators that freeze your machine every 10 minutes.
+wait, why are we still fighting 15-minute emulator freezes
 
-Running declarative E2E flows with Maestro directly on real devices changed our feedback loop completely. No simulator lag, consistent assertions on both iOS and Android.
+mobile testing doesn't need to mean watching heavy emulators freeze your whole laptop
 
-The simpler the test toolchain, the more likely you actually run it before shipping.
+running declarative e2e flows with maestro directly on a physical phone gives instant feedback with zero simulator lag
+
+the less friction in your test runner, the more often you ship without fear
 ```
 
-*Example 2 (AI Pair-Programming):*
+*Example 2 (AI Pair-Programming - Pattern Interrupt):*
 ```text
-Building with AI agents works best when you treat them as pair programmers rather than black boxes.
+wait, prompt tuning isn't why your ai agent fails
 
-Give them strict anti-AI filter rules, direct access to run unit tests, and automatic verification steps before committing code.
+spending hours massaging prompts is the slowest way to fix an ai agent
 
-Constraints don't slow AI down; they eliminate hallucinations.
+what actually works: give it strict anti-ai rules, a terminal to run tests, and automatic verification before every commit
+
+constraints eliminate hallucinations faster than clever prompting
 ```
 
 ### B. Technical Engineering Deep-Dives (cotsong.dev / Tech Blogs)
