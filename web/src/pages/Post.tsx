@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Alert, ConfirmDialog, ContentTypeBadge, CopyButton, Empty, Snackbar, Spinner, StatusBadge, formatBytes } from '../components/ui'
 import {
@@ -284,23 +284,35 @@ export function Post() {
     [content?.caption, handleShareOrDownload],
   )
 
+  const postText = useMemo(() => {
+    if (!content) return ''
+    if (content.contentType === 'text' && content.title && content.caption) {
+      const trimmedTitle = content.title.trim()
+      const trimmedCaption = content.caption.trim()
+      if (!trimmedCaption.toLowerCase().startsWith(trimmedTitle.toLowerCase())) {
+        return `${trimmedTitle}\n\n${trimmedCaption}`
+      }
+    }
+    return content.caption || ''
+  }, [content])
+
   const handleCopyCaptionOnly = useCallback(async () => {
-    if (!content?.caption) return
+    if (!postText) return
     try {
-      await navigator.clipboard.writeText(content.caption)
+      await navigator.clipboard.writeText(postText)
       setCaptionCopied(true)
       setTimeout(() => setCaptionCopied(false), 3500)
     } catch {
       // ignore
     }
-  }, [content?.caption])
+  }, [postText])
 
   const handleOpenX = useCallback(async () => {
     await handleCopyCaptionOnly()
-    const text = content?.caption || ''
+    const text = postText || ''
     const intentUrl = text.length < 1800 ? `https://x.com/intent/post?text=${encodeURIComponent(text)}` : 'https://x.com/compose/post'
     window.open(intentUrl, '_blank', 'noopener,noreferrer')
-  }, [content?.caption, handleCopyCaptionOnly])
+  }, [postText, handleCopyCaptionOnly])
 
   const handleOpenFacebook = useCallback(async () => {
     await handleCopyCaptionOnly()
@@ -527,7 +539,7 @@ export function Post() {
                   lineHeight: 1.6,
                 }}
               >
-                {content.caption || '(No caption text provided)'}
+                {postText || '(No caption text provided)'}
               </div>
 
               <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
